@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => '保全計画',
+    'refresh' => '再読み込み',
+    'new' => '新規作成',
+    'asset_filter' => '設備で絞り込み',
+    'all' => 'すべて',
+    'reload_calendar' => 'カレンダー再読込',
+    'total' => '合計: :count 件',
+    'no_plans' => '保全計画はまだありません。',
+    'asset' => '設備',
+    'start' => '開始',
+    'checklist' => 'チェックリスト',
+    'description' => '説明',
+    'lead_time_days' => 'リードタイム（日）',
+    'start_date' => '開始日',
+    'end_date' => '終了日',
+    'timezone' => 'タイムゾーン',
+    'assigned_to' => '担当者',
+    'unassigned' => '未割り当て',
+    'status' => 'ステータス',
+    'edit_title' => '保全計画の編集',
+    'after_saving_hint' => '保存後、将来の予定は自動で生成または補充されます。',
+    'manage_for_asset' => 'この設備の保全計画を管理',
+    'select_asset_first' => '先に設備を選択してください',
+];

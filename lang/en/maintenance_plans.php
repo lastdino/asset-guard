@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'Maintenance Plans',
+    'refresh' => 'Refresh',
+    'new' => 'New Plan',
+    'asset_filter' => 'Asset filter',
+    'all' => 'All',
+    'reload_calendar' => 'Reload calendar',
+    'total' => 'Total: :count plans',
+    'no_plans' => 'No maintenance plans yet.',
+    'asset' => 'Asset',
+    'start' => 'Start',
+    'checklist' => 'Checklist',
+    'description' => 'Description',
+    'lead_time_days' => 'Lead time (days)',
+    'start_date' => 'Start date',
+    'end_date' => 'End date',
+    'timezone' => 'Timezone',
+    'assigned_to' => 'Assigned to',
+    'unassigned' => 'Unassigned',
+    'status' => 'Status',
+    'edit_title' => 'Edit Maintenance Plan',
+    'after_saving_hint' => 'After saving, future occurrences will be generated or topped up automatically.',
+    'manage_for_asset' => 'Manage maintenance plans for this asset',
+    'select_asset_first' => 'Please select an asset first',
+];

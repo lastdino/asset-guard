@@ -1,0 +1,52 @@
+{
+    "name": "lastdino/asset-guard",
+    "description": "This is my package KanbanBoard",
+    "keywords": [
+        "Lastdino",
+        "laravel",
+        "AssetGuard"
+    ],
+    "homepage": "https://github.com/lastdino/asset-guard",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lastdino",
+            "email": "87484368+lastdino@users.noreply.github.com",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Lastdino\\AssetGuard\\": "src/",
+            "Lastdino\\AssetGuard\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Workbench\\App\\": "workbench/app/"
+        }
+    },
+    "require": {
+        "php": "^8.0",
+        "illuminate/support": "^12.0",
+        "livewire/livewire": "^3.0",
+        "livewire/flux": "^2.0",
+        "spatie/laravel-medialibrary": "^11.13"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Lastdino\\AssetGuard\\AssetGuardServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
