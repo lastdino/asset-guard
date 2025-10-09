@@ -54,7 +54,7 @@ Route::middleware(config('asset-guard.routes.middleware'))
                 'Content-Type' => $mediaItem->mime_type,
                 'Cache-Control' => 'private, max-age=600',
             ]);
-        })->middleware(['auth', 'signed'])->name('inspections.items.media');
+        })->middleware(['signed'])->name('inspections.items.media');
 
         // Signed, auth-protected download for inspection result attachments
         Route::get('/inspections/results/download/{media}', function (Request $request, int $media) {
