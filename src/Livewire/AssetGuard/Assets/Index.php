@@ -6,12 +6,14 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
+use Lastdino\AssetGuard\Models\AssetGuardAssetType;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem;
 use Lastdino\AssetGuard\Models\AssetGuardLocation;
 use Lastdino\AssetGuard\Models\AssetGuardIncident;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
+use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
 use Livewire\Component;
@@ -24,7 +26,7 @@ class Index extends Component
     // Filters
     public string $search = '';
     public string $status = '';
-    public string $type = '';
+    public ?int $assetTypeId = null;
 
     // Individual search fields
     public string $searchCode = '';
@@ -56,7 +58,7 @@ class Index extends Component
         'manufacturer' => '',
         'spec' => '',
         'parent_id' => null,
-        'type' => 'Equipment', // Equipment|Instrument|Electronic|Accessory
+        'asset_type_id' => null,
     ];
 
     // Detail modal state
@@ -86,6 +88,12 @@ class Index extends Component
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $assetImages = [];
 
+    // Pre-use checklist selector modal state
+    public bool $showPreUseSelector = false;
+    public ?int $selectorAssetId = null;
+    /** @var array<int, array{id:int, name:string}> */
+    public array $selectorOptions = [];
+
     protected function rulesForm(): array
     {
         $uniqueCode = 'unique:asset_guard_assets,code';
@@ -105,7 +113,7 @@ class Index extends Component
             'form.manufacturer' => ['nullable','string','max:255'],
             'form.spec' => ['nullable','string'],
             'form.parent_id' => ['nullable','integer'],
-            'form.type' => ['required','in:Equipment,Instrument,Electronic,Accessory'],
+            'form.asset_type_id' => ['nullable','integer','exists:asset_guard_asset_types,id'],
         ];
     }
 
@@ -150,14 +158,14 @@ class Index extends Component
                     ->orWhere('fixed_asset_no', 'like', $term);
             }))
             // Individual field filters (AND logic)
-            ->when($this->searchCode !== '', fn($q) => $q->where('code', 'like', "%{$this->searchCode}%"))
+            ->when($this->searchCode !== '', fn($q) => $q->where('code', "$this->searchCode"))
             ->when($this->searchName !== '', fn($q) => $q->where('name', 'like', "%{$this->searchName}%"))
             ->when($this->searchLocation !== '', fn($q) => $q->where('location_id', $this->searchLocation))
             ->when($this->searchSerial !== '', fn($q) => $q->where('serial_no', 'like', "%{$this->searchSerial}%"))
             ->when($this->searchFixed !== '', fn($q) => $q->where('fixed_asset_no', 'like', "%{$this->searchFixed}%"))
             ->when($this->status !== '', fn($q) => $q->where('status', $this->status))
-            ->when($this->type !== '', fn($q) => $q->where('type', $this->type))
-            ->with(['children' => fn($q) => $q->orderBy('name'), 'location'])
+            ->when($this->assetTypeId, fn($q) => $q->where('asset_type_id', $this->assetTypeId))
+            ->with(['children' => fn($q) => $q->orderBy('name'), 'location', 'assetType:id,name'])
             ->latest('id')
             ->limit(100)
             ->get();
@@ -169,7 +177,7 @@ class Index extends Component
             'code' => '', 'name' => '', 'status' => 'Active', 'serial_no' => '',
             'fixed_asset_no' => '', 'manager_id' => null, 'location_id' => null,
             'installed_at' => '', 'manufacturer' => '', 'spec' => '',
-            'parent_id' => null, 'type' => 'Equipment',
+            'parent_id' => null, 'asset_type_id' => null,
         ];
     }
 
@@ -258,9 +266,6 @@ class Index extends Component
 
     public function startPreUseInspection(int $assetId): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
 
         $gate = new PreUseInspectionGate(assetId: $assetId);
         if (! $gate->isInspectionRequired()) {
@@ -271,19 +276,63 @@ class Index extends Component
             return;
         }
 
-        $plan = AssetGuardMaintenancePlan::query()
+        $assetTypeId = \Lastdino\AssetGuard\Models\AssetGuardAsset::query()->whereKey($assetId)->value('asset_type_id');
+
+        $plans = AssetGuardMaintenancePlan::query()
             ->where('asset_id', $assetId)
             ->where(function ($q) { $q->where('trigger_type', 'per_use')->orWhereNull('trigger_type'); })
-            ->where('require_before_activation', true)
             ->where('status', 'Scheduled')
-            ->first();
+            ->whereHas('checklist', function ($q) use ($assetTypeId) {
+                $q->where('require_before_activation', true)
+                  ->where('active', true)
+                  ->where(function ($q) use ($assetTypeId) {
+                      $q->where(function ($q) use ($assetTypeId) {
+                          $q->where('applies_to', 'asset_type')
+                            ->when($assetTypeId, fn($q) => $q->where('asset_type_id', $assetTypeId));
+                      })->orWhere(function ($q) {
+                          $q->where('applies_to', 'asset');
+                      });
+                  });
+            })
+            ->with('checklist:id,name')
+            ->get();
 
-        if (! $plan) {
+        if ($plans->isEmpty()) {
             $this->dispatch('notify', type: 'error', message: __('asset-guard::inspections.no_pre_use_plan'));
             return;
         }
 
-        $this->dispatch('open-pre-use-performer', assetId: $assetId, checklistId: $plan->checklist_id);
+        // Exclude checklists already completed today
+        $tz = config('app.timezone');
+        $today = Carbon::now($tz)->toDateString();
+
+        $doneTodayChecklistIds = AssetGuardInspection::query()
+            ->where('asset_id', $assetId)
+            ->whereIn('checklist_id', $plans->pluck('checklist_id'))
+            ->where('status', 'Completed')
+            ->whereDate('performed_at', $today)
+            ->pluck('checklist_id')
+            ->unique()
+            ->all();
+
+        $pendingPlans = $plans->reject(fn($p) => in_array($p->checklist_id, $doneTodayChecklistIds, true))->values();
+
+        if ($pendingPlans->isEmpty()) {
+            $this->dispatch('notify', type: 'info', message: __('asset-guard::inspections.pre_use_not_required_today'));
+            if ($this->selectedAssetId === $assetId) {
+                $this->preUseRequired = false;
+            }
+            return;
+        }
+
+        if ($pendingPlans->count() === 1) {
+            $plan = $pendingPlans->first();
+            $this->dispatch('open-pre-use-performer', assetId: $assetId, checklistId: $plan->checklist_id);
+            return;
+        }
+
+        $options = $pendingPlans->map(fn($p) => ['id' => $p->checklist_id, 'name' => $p->checklist->name])->values();
+        $this->dispatch('open-pre-use-selector', assetId: $assetId, checklists: $options);
     }
 
     public function switchTab(string $tab): void
@@ -354,9 +403,22 @@ class Index extends Component
         }
     }
 
+    #[On('open-pre-use-selector')]
+    public function onOpenPreUseSelector(int $assetId, array $checklists): void
+    {
+        $this->selectorAssetId = $assetId;
+        $this->selectorOptions = $checklists;
+        $this->showPreUseSelector = true;
+    }
+
     public function getLocationOptionsProperty()
     {
         return AssetGuardLocation::query()->orderBy('name')->get(['id','name']);
+    }
+
+    public function getTypeOptionsProperty()
+    {
+        return AssetGuardAssetType::query()->orderBy('sort_order')->orderBy('name')->get(['id','name']);
     }
 
     public function openIncident(): void

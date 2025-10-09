@@ -17,11 +17,17 @@ Route::middleware(config('asset-guard.routes.middleware'))
         // Locations index (Livewire class component)
         Route::get('/locations', LocationsIndex::class)->name('locations.index');
 
+        // Asset Types index (Livewire class component)
+        Route::get('/asset-types', \Lastdino\AssetGuard\Livewire\AssetGuard\AssetTypes\Index::class)->name('asset-types.index');
+
         // Dashboard (Livewire class component)
         Route::get('/dashboard', \Lastdino\AssetGuard\Livewire\AssetGuard\Dashboard\Index::class)->name('dashboard.index');
 
         // Maintenance Plans (Livewire class component)
         Route::get('/maintenance-plans', \Lastdino\AssetGuard\Livewire\AssetGuard\MaintenancePlans\Index::class)->name('maintenance-plans.index');
+
+        // Incidents index (Livewire class component)
+        Route::get('/incidents', \Lastdino\AssetGuard\Livewire\AssetGuard\Incidents\Index::class)->name('incidents.index');
 
         // Signed, auth-protected download for incident attachments
         Route::get('/incidents/download/{media}', function (Request $request, int $media) {

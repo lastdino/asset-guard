@@ -39,6 +39,7 @@ return [
     'starting' => '開始中...',
     'pre_use_not_required_today' => '本日は既に使用前点検が完了しています。',
     'no_pre_use_plan' => '使用前点検のプランが見つかりません。',
+        'select_pre_use_checklist' => '使用前点検のチェックリストを選択',
 
     // List badge
     'pending_short' => '未実施',

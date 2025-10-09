@@ -192,10 +192,6 @@ class PreUsePerformer extends Component
      */
     public function saveDraft(): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
-
         // Basic validation for IDs and inspector
         $this->validate([
             'assetId' => ['required','integer'],

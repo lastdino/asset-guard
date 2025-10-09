@@ -60,6 +60,7 @@ class Index extends Component
         'status' => 'Scheduled',
         'notes' => null,
         'completed_at' => null,
+        'assigned_to' => null,
     ];
 
     // Occurrence delete confirm state
@@ -74,9 +75,7 @@ class Index extends Component
     #[On('calendar-dropped')]
     public function reschedule(int $occurrenceId, string $newPlannedAt): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
+
 
         $occ = Occurrence::query()->with('plan')->findOrFail($occurrenceId);
         $occ->planned_at = Carbon::parse($newPlannedAt);
@@ -210,6 +209,7 @@ class Index extends Component
             'status' => (string) ($occ->status ?: 'Scheduled'),
             'notes' => $occ->notes,
             'completed_at' => optional($occ->completed_at)->format('Y-m-d\TH:i'),
+            'assigned_to' => $occ->assigned_to,
         ];
 
         $this->showOccurrenceEdit = true;
@@ -217,9 +217,6 @@ class Index extends Component
 
     public function saveOccurrence(): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
 
         $this->validate([
             'occurrenceForm.planned_at' => ['required', 'date'],
@@ -227,6 +224,7 @@ class Index extends Component
             'occurrenceForm.status' => ['required', 'string'],
             'occurrenceForm.notes' => ['nullable', 'string'],
             'occurrenceForm.completed_at' => ['nullable', 'date', 'after_or_equal:occurrenceForm.planned_at'],
+            'occurrenceForm.assigned_to' => ['nullable', Rule::exists('users', 'id')],
         ]);
 
         $occ = Occurrence::query()->findOrFail((int) $this->editingOccurrenceId);
@@ -235,6 +233,7 @@ class Index extends Component
         $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
         $occ->status = (string) $this->occurrenceForm['status'];
         $occ->notes = $this->occurrenceForm['notes'];
+        $occ->assigned_to = $this->occurrenceForm['assigned_to'];
 
         if ($occ->status === 'Completed') {
             $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
@@ -268,9 +267,6 @@ class Index extends Component
 
     public function deleteOccurrence(): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
 
         $occ = Occurrence::query()->findOrFail((int) $this->deletingOccurrenceId);
         $planId = $occ->maintenance_plan_id;
@@ -300,13 +296,25 @@ class Index extends Component
         return [
             'form.asset_id' => ['required', Rule::exists('asset_guard_assets', 'id')],
             'form.checklist_id' => [
-                            'required',
-                            Rule::exists('asset_guard_inspection_checklists', 'id')
-                                ->where(fn($q) => $q->where('asset_id', $this->form['asset_id'] ?? 0)),
-                        ],
+                'required',
+                Rule::exists('asset_guard_inspection_checklists', 'id')
+                    ->where(fn($q) => $q->where('asset_id', $this->form['asset_id'] ?? 0)),
+            ],
             'form.title' => ['nullable', 'string', 'max:255'],
             'form.description' => ['nullable', 'string'],
-            'form.start_date' => ['required', 'date'],
+            'form.start_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(function (): bool {
+                    $cid = $this->form['checklist_id'] ?? null;
+                    if (! $cid) {
+                        return true; // checklist required above, but defend anyway
+                    }
+                    $cl = AssetGuardInspectionChecklist::find($cid);
+                    // Require start_date unless checklist frequency is PerUse
+                    return ! ($cl && $cl->frequency_unit === 'PerUse');
+                }),
+            ],
             'form.end_date' => ['nullable', 'date', 'after_or_equal:form.start_date'],
             'form.timezone' => ['required', 'string'],
             'form.lead_time_days' => ['nullable', 'integer', 'min:0', 'max:30'],
@@ -318,9 +326,6 @@ class Index extends Component
 
     public function save(): void
     {
-        if (! auth()->check()) {
-            abort(403);
-        }
 
         $this->validate();
 

@@ -26,8 +26,8 @@ class AssetGuardMaintenancePlan extends Model
     protected function casts(): array
     {
         return [
-            'start_date' => 'date',
-            'end_date' => 'date',
+            'start_date' => 'immutable_date',
+            'end_date' => 'immutable_date',
             'lead_time_days' => 'integer',
             'require_before_activation' => 'boolean',
         ];

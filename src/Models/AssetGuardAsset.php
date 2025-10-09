@@ -11,6 +11,14 @@ use Spatie\Image\Enums\Fit;
 
 class AssetGuardAsset extends Model implements HasMedia
 {
+    protected static function booted(): void
+    {
+        static::updated(function (self $asset): void {
+            if ($asset->wasChanged('asset_type_id')) {
+                app(\Lastdino\AssetGuard\Services\SyncPreUsePlanForAsset::class)->handle($asset);
+            }
+        });
+    }
     use InteractsWithMedia;
 
     protected $fillable = [
@@ -20,13 +28,12 @@ class AssetGuardAsset extends Model implements HasMedia
         'fixed_asset_no',
         'manager_id',
         'location_id',
-        'location',
         'status',
         'installed_at',
         'manufacturer',
         'spec',
         'parent_id',
-        'type',
+        'asset_type_id',
         'meta',
     ];
 
@@ -86,5 +93,10 @@ class AssetGuardAsset extends Model implements HasMedia
             ->addMediaConversion('thumb')
             ->fit(Fit::Contain, 400, 300)
             ->nonQueued();
+    }
+
+    public function assetType(): BelongsTo
+    {
+        return $this->belongsTo(AssetGuardAssetType::class, 'asset_type_id');
     }
 }

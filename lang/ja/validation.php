@@ -2,6 +2,6 @@
 
 return [
     'custom' => [
-        'cannot_delete_in_use' => '使用中のため削除できません。',
+        'cannot_delete_in_use' => '関連付けられたレコードが存在するため削除できません。',
     ],
 ];

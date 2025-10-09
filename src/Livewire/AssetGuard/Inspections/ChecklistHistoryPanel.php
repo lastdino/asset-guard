@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
+use Illuminate\Support\Collection;
 use Livewire\Component;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 
@@ -16,11 +17,23 @@ class ChecklistHistoryPanel extends Component
         $this->assetId = $assetId;
     }
 
-    public function getChecklistsProperty()
+    public function getChecklistsProperty(): Collection
     {
-        return AssetGuardAsset::query()
-            ->with('inspectionChecklists')
-            ->find($this->assetId)?->inspectionChecklists ?? collect();
+        $asset = AssetGuardAsset::query()
+            ->with([
+                'inspectionChecklists.items',
+                'assetType.checklists.items',
+            ])
+            ->find($this->assetId);
+
+        if (! $asset) {
+            return collect();
+        }
+
+        return $asset->inspectionChecklists
+            ->merge($asset->assetType?->checklists ?? collect())
+            ->unique('id')
+            ->values();
     }
 
     public function render()

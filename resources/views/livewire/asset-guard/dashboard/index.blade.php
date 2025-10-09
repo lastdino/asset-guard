@@ -7,8 +7,17 @@
                 <flux:navbar>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.dashboard.index') }}">ダッシュボード</flux:navbar.item>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.assets.index') }}">設備一覧</flux:navbar.item>
+                    <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.incidents.index') }}">故障履歴一覧</flux:navbar.item>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.maintenance-plans.index') }}">保全計画</flux:navbar.item>
-                    <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.locations.index') }}">設置場所設定</flux:navbar.item>
+
+                    <flux:dropdown>
+                        <flux:navbar.item class="max-lg:hidden" square icon="cog-6-tooth" href="#" label="Settings" />
+                        <flux:menu>
+                            <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.locations.index') }}">設置場所設定</flux:navbar.item>
+                            <flux:menu.separator />
+                            <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.asset-types.index') }}">資産タイプ設定</flux:navbar.item>
+                        </flux:menu>
+                    </flux:dropdown>
                 </flux:navbar>
             </div>
             <select wire:model.live="period" class="border rounded px-2 py-1 text-sm bg-white dark:bg-zinc-900">

@@ -2,6 +2,6 @@
 
 return [
     'custom' => [
-        'cannot_delete_in_use' => 'Cannot delete while in use.',
+        'cannot_delete_in_use' => 'Cannot delete because related records exist.',
     ],
 ];

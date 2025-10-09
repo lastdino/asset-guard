@@ -51,6 +51,7 @@
             </div>
 
             <flux:switch :label="__('asset-guard::checklists.active')" wire:model.defer="form.active" />
+            <flux:switch :label="__('asset-guard::checklists.require_before_activation')" wire:model.defer="form.require_before_activation" />
         </div>
         <div class="mt-4 flex justify-end gap-2">
             <flux:button variant="ghost" wire:click="$set('showModal', false)">{{ __('asset-guard::common.cancel') }}</flux:button>

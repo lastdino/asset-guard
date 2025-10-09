@@ -28,12 +28,11 @@
             <option value="Retired">{{ __('asset-guard::assets.filters.status.Retired') }}</option>
         </flux:select>
 
-        <flux:select class="max-w-48" wire:model.live="type">
-            <option value="">{{ __('asset-guard::assets.filters.type.all') }}</option>
-            <option value="Equipment">{{ __('asset-guard::assets.filters.type.Equipment') }}</option>
-            <option value="Instrument">{{ __('asset-guard::assets.filters.type.Instrument') }}</option>
-            <option value="Electronic">{{ __('asset-guard::assets.filters.type.Electronic') }}</option>
-            <option value="Accessory">{{ __('asset-guard::assets.filters.type.Accessory') }}</option>
+        <flux:select class="max-w-48" wire:model.live="assetTypeId">
+            <option value="">{{ __('asset_guard.assets.fields.asset_type') }} — {{ __('asset-guard::common.all') }}</option>
+            @foreach($this->typeOptions as $t)
+                <option value="{{ $t->id }}">{{ $t->name }}</option>
+            @endforeach
         </flux:select>
 
         <flux:spacer />
@@ -53,7 +52,7 @@
                             <flux:icon name="computer-desktop" />
                         @endif
                         <div>
-                            <div class="font-medium">{{ $asset->code }} — {{ $asset->name }}</div>
+                            <div class="font-medium">{{ $asset->code }} — {{ $asset->manufacturer }} — {{ $asset->name }}</div>
                             <div class="text-sm text-zinc-500">{{ optional($asset->location)->name }} / {{ $asset->serial_no }} / {{ $asset->fixed_asset_no }}</div>
                         </div>
                     </div>
@@ -130,11 +129,11 @@
             </flux:select>
             <flux:input type="date" label="設置日" wire:model.defer="form.installed_at" />
             <flux:input label="メーカー" wire:model.defer="form.manufacturer" />
-            <flux:select label="種別" wire:model.defer="form.type">
-                <option value="Equipment">設備</option>
-                <option value="Instrument">測定機器</option>
-                <option value="Electronic">電子機器</option>
-                <option value="Accessory">付属品</option>
+            <flux:select label="{{ __('asset_guard.assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
+                <option value="">{{ __('asset-guard::common.select') }}</option>
+                @foreach($this->typeOptions as $t)
+                    <option value="{{ $t->id }}">{{ $t->name }}</option>
+                @endforeach
             </flux:select>
             <flux:input label="付属元 (parent_id)" wire:model.defer="form.parent_id" placeholder="ID" />
         </div>
@@ -171,11 +170,11 @@
             </flux:select>
             <flux:input type="date" label="設置日" wire:model.defer="form.installed_at" />
             <flux:input label="メーカー" wire:model.defer="form.manufacturer" />
-            <flux:select label="種別" wire:model.defer="form.type">
-                <option value="Equipment">設備</option>
-                <option value="Instrument">測定機器</option>
-                <option value="Electronic">電子機器</option>
-                <option value="Accessory">付属品</option>
+            <flux:select label="{{ __('asset_guard.assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
+                <option value="">{{ __('asset-guard::common.select') }}</option>
+                @foreach($this->typeOptions as $t)
+                    <option value="{{ $t->id }}">{{ $t->name }}</option>
+                @endforeach
             </flux:select>
             <flux:input label="付属元 (parent_id)" wire:model.defer="form.parent_id" placeholder="ID" />
         </div>
@@ -330,7 +329,7 @@
             <!-- 点検履歴タブ -->
             @if($activeTab === 'inspections')
                 <div class="mt-4">
-                    @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\index',['assetId' => $selectedAssetId])
+                    <livewire:asset-guard.inspections.index :assetId="$selectedAssetId" />
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\ChecklistHistoryPanel', ['assetId' => $selectedAssetId])
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\Show')
                 </div>
@@ -353,6 +352,24 @@
             @endif
         @endif
     </flux:modal>
+
+        <!-- Pre-use checklist selector modal (multiple plans) -->
+        <flux:modal wire:model="showPreUseSelector">
+            <flux:heading size="md">{{ __('asset-guard::inspections.select_pre_use_checklist') }}</flux:heading>
+            <div class="mt-3 grid gap-2">
+                @foreach ($selectorOptions as $opt)
+                    <flux:button
+                        variant="subtle"
+                        wire:click="$dispatch('open-pre-use-performer', { assetId: {{ $selectorAssetId ?? 'null' }}, checklistId: {{ (int) $opt['id'] }} }); $set('showPreUseSelector', false)"
+                    >
+                        {{ $opt['name'] }}
+                    </flux:button>
+                @endforeach
+            </div>
+            <div class="mt-4 flex justify-end">
+                <flux:button variant="ghost" wire:click="$set('showPreUseSelector', false)">{{ __('asset-guard::common.cancel') }}</flux:button>
+            </div>
+        </flux:modal>
 
         @livewire('asset-guard.inspections.pre-use-performer')
 

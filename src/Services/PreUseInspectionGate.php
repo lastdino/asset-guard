@@ -7,6 +7,7 @@ namespace Lastdino\AssetGuard\Services;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
+use Lastdino\AssetGuard\Models\AssetGuardAsset as Asset;
 
 class PreUseInspectionGate
 {
@@ -14,41 +15,54 @@ class PreUseInspectionGate
 
     public function isInspectionRequired(): bool
     {
-        $plan = AssetGuardMaintenancePlan::query()
+        $assetTypeId = Asset::query()->whereKey($this->assetId)->value('asset_type_id');
+
+        $plans = AssetGuardMaintenancePlan::query()
             ->where('asset_id', $this->assetId)
             ->where(function ($q) {
                 $q->where('trigger_type', 'per_use')
-                  ->orWhereNull('trigger_type'); // fallback for older records, rely on checklist unit
+                  ->orWhereNull('trigger_type'); // fallback for older records
             })
-            ->where('require_before_activation', true)
             ->where('status', 'Scheduled')
-            ->first();
+            ->whereHas('checklist', function ($q) use ($assetTypeId) {
+                $q->where('require_before_activation', true)
+                  ->where('active', true)
+                  ->where(function ($q) use ($assetTypeId) {
+                      $q->where(function ($q) use ($assetTypeId) {
+                          $q->where('applies_to', 'asset_type')
+                            ->when($assetTypeId, fn ($q) => $q->where('asset_type_id', $assetTypeId));
+                      })->orWhere(function ($q) {
+                          $q->where('applies_to', 'asset');
+                      });
+                  });
+            })
+            ->get();
 
-        if (! $plan) {
+        if ($plans->isEmpty()) {
             return false;
         }
 
-        // Determine timezone
-        $tz = $plan->timezone ?: config('app.timezone');
+        $tz = config('app.timezone');
         $now = Carbon::now($tz);
 
-        // Find last completed inspection for this plan's checklist on this asset
-        $lastCompleted = AssetGuardInspection::query()
-            ->where('asset_id', $this->assetId)
-            ->where('checklist_id', $plan->checklist_id)
-            ->where('status', 'Completed')
-            ->latest('performed_at')
-            ->first();
+        foreach ($plans as $plan) {
+            $lastCompleted = AssetGuardInspection::query()
+                ->where('asset_id', $this->assetId)
+                ->where('checklist_id', $plan->checklist_id)
+                ->where('status', 'Completed')
+                ->latest('performed_at')
+                ->first();
 
-        if (! $lastCompleted) {
-            return true;
+            if (! $lastCompleted) {
+                return true;
+            }
+
+            $performed = $lastCompleted->performed_at?->copy()->timezone($tz);
+            if ($performed === null || ! $performed->isSameDay($now)) {
+                return true;
+            }
         }
 
-        $performed = $lastCompleted->performed_at?->copy()->timezone($tz);
-        if ($performed === null) {
-            return true;
-        }
-
-        return ! $performed->isSameDay($now);
+        return false; // all completed today
     }
 }

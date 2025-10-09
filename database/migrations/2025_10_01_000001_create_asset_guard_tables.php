@@ -109,7 +109,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->string('trigger_type', 32)->default('time'); // time|usage
             $table->boolean('require_before_activation')->default(false);
-            $table->date('start_date');
+            $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->string('timezone')->default(config('app.timezone'));
             $table->unsignedTinyInteger('lead_time_days')->default(3);

@@ -105,8 +105,6 @@
                         <option value="{{ $st }}">{{ $st }}</option>
                     @endforeach
                 </flux:select>
-
-                <flux:switch :label="__('asset-guard::plans.require_before_activation')" wire:model.live="form.require_before_activation" />
             </div>
 
             <div class="space-y-4">
@@ -225,8 +223,6 @@
                     <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
                     @enderror
                 </flux:field>
-
-                <flux:switch :label="__('asset-guard::plans.require_before_activation')" wire:model.live="form.require_before_activation" />
             </div>
 
             <div class="space-y-4">
@@ -265,6 +261,13 @@
             <flux:input type="datetime-local" wire:model.live="occurrenceForm.completed_at" label="{{__('asset-guard::occurrences.completed_at')}}"/>
 
             <flux:textarea rows="4" wire:model.live="occurrenceForm.notes" label="{{__('asset-guard::occurrences.notes')}}"/>
+
+            <flux:select wire:model.live="occurrenceForm.assigned_to" label="{{__('asset-guard::common.assignee')}}">
+                <option value="">{{ __('asset-guard::maintenance_plans.unassigned') }}</option>
+                @foreach (\App\Models\User::query()->orderBy('name')->get(['id','name']) as $user)
+                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                @endforeach
+            </flux:select>
 
         </div>
 

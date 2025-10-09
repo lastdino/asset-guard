@@ -10,6 +10,7 @@ class AssetGuardMaintenanceOccurrence extends Model
     protected $fillable = [
         'maintenance_plan_id',
         'asset_id',
+        'assigned_to',
         'planned_at',
         'due_at',
         'completed_at',
@@ -34,5 +35,10 @@ class AssetGuardMaintenanceOccurrence extends Model
     public function asset(): BelongsTo
     {
         return $this->belongsTo(AssetGuardAsset::class, 'asset_id');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'assigned_to');
     }
 }

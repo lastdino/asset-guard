@@ -74,6 +74,7 @@ class GenerateMaintenanceOccurrences
             'planned_at' => $when->toDateTimeString(),
         ], [
             'status' => 'Scheduled',
+            'assigned_to' => $plan->assigned_to,
         ]);
     }
 }

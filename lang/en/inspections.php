@@ -39,6 +39,7 @@ return [
     'starting' => 'Starting...',
     'pre_use_not_required_today' => 'Pre-use inspection already completed today.',
     'no_pre_use_plan' => 'No pre-use inspection plan found.',
+        'select_pre_use_checklist' => 'Select a pre-use checklist',
 
     // List badge
     'pending_short' => 'Pending',
