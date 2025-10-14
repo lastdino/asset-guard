@@ -29,4 +29,5 @@ return [
     'overdue' => '期限超過',
     'upcoming' => '予定',
     'no_data' => 'データがありません',
+    'confirm' => '確定',
 ];

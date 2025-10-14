@@ -6,6 +6,7 @@
             <div>
                 <flux:navbar>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.dashboard.index') }}">ダッシュボード</flux:navbar.item>
+                    <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.inspections.quick') }}">{{ __('asset-guard::quick_inspection.title') }}</flux:navbar.item>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.assets.index') }}">設備一覧</flux:navbar.item>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.incidents.index') }}">故障履歴一覧</flux:navbar.item>
                     <flux:navbar.item href="{{ route(config('asset-guard.routes.prefix').'.maintenance-plans.index') }}">保全計画</flux:navbar.item>

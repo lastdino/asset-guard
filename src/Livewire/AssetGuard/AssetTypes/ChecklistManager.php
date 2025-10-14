@@ -112,8 +112,8 @@ class ChecklistManager extends Component
             $checklist = Checklist::query()->create($data);
         }
 
-        // Immediate sync: create or remove per_use Scheduled plans for all assets of this type
-        if ((bool) $checklist->active && (bool) $checklist->require_before_activation) {
+        // Immediate sync: if active, ensure a Scheduled plan per asset based on frequency; otherwise remove
+        if ((bool) $checklist->active) {
             $this->ensurePlansForChecklist($checklist);
         } else {
             $this->removePlansForChecklist($checklist);
@@ -141,27 +141,42 @@ class ChecklistManager extends Component
             return;
         }
 
+        $newTrigger = ($cl->frequency_unit === 'PerUse') ? 'per_use' : 'time';
+
         Asset::query()
             ->where('asset_type_id', $cl->asset_type_id)
             ->where('status', '!=', 'Retired')
             ->orderBy('id')
-            ->chunkById(500, function ($assets) use ($cl) {
+            ->chunkById(500, function ($assets) use ($cl, $newTrigger) {
                 foreach ($assets as $asset) {
-                    $exists = Plan::query()
+                    $existing = Plan::query()
                         ->where('asset_id', $asset->id)
                         ->where('checklist_id', $cl->id)
-                        ->where(function ($q) { $q->where('trigger_type', 'per_use')->orWhereNull('trigger_type'); })
                         ->where('status', 'Scheduled')
-                        ->exists();
+                        ->get();
 
-                    if ($exists) {
+                    $current = $existing->firstWhere('trigger_type', $newTrigger)
+                        ?? $existing->firstWhere('trigger_type', null);
+
+                    // Archive any Scheduled plans that don't match the new trigger
+                    $existing
+                        ->filter(fn ($p) => (string) $p->trigger_type !== (string) $newTrigger)
+                        ->each(fn ($p) => $p->update(['status' => 'Archived']));
+
+                    if ($current) {
+                        $current->update([
+                            'title' => $cl->name,
+                            'trigger_type' => $newTrigger,
+                            'require_before_activation' => (bool) $cl->require_before_activation,
+                            'timezone' => config('app.timezone'),
+                        ]);
                         continue;
                     }
 
                     Plan::query()->create([
                         'asset_id' => $asset->id,
                         'checklist_id' => $cl->id,
-                        'trigger_type' => 'per_use',
+                        'trigger_type' => $newTrigger,
                         'status' => 'Scheduled',
                         'timezone' => config('app.timezone'),
                         'require_before_activation' => (bool) $cl->require_before_activation,
@@ -185,7 +200,6 @@ class ChecklistManager extends Component
                     Plan::query()
                         ->where('asset_id', $asset->id)
                         ->where('checklist_id', $cl->id)
-                        ->where(function ($q) { $q->where('trigger_type', 'per_use')->orWhereNull('trigger_type'); })
                         ->where('status', 'Scheduled')
                         ->each(function (Plan $plan) {
                             // delete pending occurrences if exist

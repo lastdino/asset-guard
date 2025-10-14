@@ -29,4 +29,5 @@ return [
     'overdue' => 'Overdue',
     'upcoming' => 'Upcoming',
     'no_data' => 'No data available',
+    'confirm' => 'Confirm',
 ];

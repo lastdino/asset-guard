@@ -58,4 +58,11 @@ return [
         'attachments' => 'Attachments',
         'download' => 'Download',
     ],
+    'upcoming' => 'Upcoming',
+
+    // Quick/Inspector setup
+    'choose_inspector_title' => 'Set Inspector',
+    'reset_inspector' => 'Reset Inspector',
+    'please_set_inspector' => 'Please set the inspector first.',
+    'please_set_inspector_hint' => 'Please configure the inspector before proceeding.',
 ];

@@ -29,6 +29,9 @@ Route::middleware(config('asset-guard.routes.middleware'))
         // Incidents index (Livewire class component)
         Route::get('/incidents', \Lastdino\AssetGuard\Livewire\AssetGuard\Incidents\Index::class)->name('incidents.index');
 
+        // Quick Inspection by Asset Code (Livewire class component)
+        Route::get('/inspections/quick', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Quick::class)->name('inspections.quick');
+
         // Signed, auth-protected download for incident attachments
         Route::get('/incidents/download/{media}', function (Request $request, int $media) {
             $mediaItem = Media::query()->findOrFail($media);

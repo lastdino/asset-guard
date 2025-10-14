@@ -36,6 +36,9 @@ return [
         'update' => '更新',
         'updating' => '更新中...',
     ],
+    'fields' => [
+        'asset_type' => '資産種別',
+    ],
 
     'edit' => '編集',
 ];

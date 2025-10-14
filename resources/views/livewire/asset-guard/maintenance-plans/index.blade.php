@@ -74,6 +74,7 @@
                     @if (empty($form['asset_id']))
                         <option value="">{{ __('asset-guard::maintenance_plans.select_asset_first') }}</option>
                     @else
+                        <option value="">リストを選択</option>
                         @foreach ($this->checklists as $cl)
                             <option value="{{ $cl->id }}">{{ $cl->name }}</option>
                         @endforeach

@@ -8,11 +8,22 @@ return [
     'name' => 'チェックリスト名',
     'active' => '有効',
     'inactive' => '無効',
+    'items_count' => '項目数: :count',
 
+    'frequency_unit_options' => [
+        'PerUse' => '毎使用時',
+    ],
+
+    'frequency_short' => ':value :unitごと',
+
+    'empty' => 'チェックリストはありません。',
+    'modal_title' => 'チェックリストを編集',
+    'name' => '名称',
     'applies_to' => '対象',
     'applies_to_asset' => '資産',
     'applies_to_type' => '資産種別',
 
+    'manage' => 'チェックリストの管理',
     'frequency' => '頻度',
     'frequency_unit' => '頻度単位',
     'frequency_value' => '頻度値',

@@ -36,6 +36,9 @@ return [
         'update' => 'Update',
         'updating' => 'Updating...',
     ],
+    'fields' => [
+        'asset_type' => 'Asset Type',
+    ],
 
     'edit' => 'Edit',
 ];

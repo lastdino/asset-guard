@@ -61,6 +61,7 @@ class AssetGuardServiceProvider extends ServiceProvider
         Livewire::component('asset-guard.inspections.pre-use-performer',\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PreUsePerformer::class);
         Livewire::component('asset-guard.inspections.show', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Show::class);
         Livewire::component('asset-guard.inspections.checklist-items-editor', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistItemsEditor::class);
+        Livewire::component('asset-guard.inspections.quick', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Quick::class);
         Livewire::component('asset-guard.maintenance-plans.index', MaintenancePlansIndex::class);
 
         Livewire::component('asset-guard.incidents.incident-panel', IncidentPanel::class);

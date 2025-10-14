@@ -29,7 +29,7 @@
         </flux:select>
 
         <flux:select class="max-w-48" wire:model.live="assetTypeId">
-            <option value="">{{ __('asset_guard.assets.fields.asset_type') }} — {{ __('asset-guard::common.all') }}</option>
+            <option value="">{{ __('asset-guard::assets.fields.asset_type') }} — {{ __('asset-guard::common.all') }}</option>
             @foreach($this->typeOptions as $t)
                 <option value="{{ $t->id }}">{{ $t->name }}</option>
             @endforeach
@@ -129,7 +129,7 @@
             </flux:select>
             <flux:input type="date" label="設置日" wire:model.defer="form.installed_at" />
             <flux:input label="メーカー" wire:model.defer="form.manufacturer" />
-            <flux:select label="{{ __('asset_guard.assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
+            <flux:select label="{{ __('asset-guard::assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
                 <option value="">{{ __('asset-guard::common.select') }}</option>
                 @foreach($this->typeOptions as $t)
                     <option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -170,7 +170,7 @@
             </flux:select>
             <flux:input type="date" label="設置日" wire:model.defer="form.installed_at" />
             <flux:input label="メーカー" wire:model.defer="form.manufacturer" />
-            <flux:select label="{{ __('asset_guard.assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
+            <flux:select label="{{ __('asset-guard::assets.fields.asset_type') }}" wire:model.defer="form.asset_type_id">
                 <option value="">{{ __('asset-guard::common.select') }}</option>
                 @foreach($this->typeOptions as $t)
                     <option value="{{ $t->id }}">{{ $t->name }}</option>

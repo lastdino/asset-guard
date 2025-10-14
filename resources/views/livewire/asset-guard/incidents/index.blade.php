@@ -1,4 +1,8 @@
 <div class="p-6 space-y-4">
+    <flux:breadcrumbs>
+        <flux:breadcrumbs.item href="{{ route(config('asset-guard.routes.prefix').'.dashboard.index') }}" icon="home" />
+        <flux:breadcrumbs.item>{{ __('asset-guard::incidents.index.title') }}</flux:breadcrumbs.item>
+    </flux:breadcrumbs>
         <div class="flex items-center justify-between gap-4 flex-wrap">
             <h1 class="text-xl font-semibold">{{ __('asset-guard::incidents.index.title') }}</h1>
             <div class="flex flex-wrap items-center gap-2">
@@ -107,10 +111,28 @@
                         <div><span class="text-zinc-500">{{ __('asset-guard::incidents.columns.actions') }}:</span> {{ $x->actions }}</div>
                     @endif
                 </div>
+                @php($attachments = $x->getMedia('attachments'))
+                @if($attachments->isNotEmpty())
+                    <div class="mt-2">
+                        <div class="text-xs text-zinc-500">添付:</div>
+                        <ul class="mt-1 flex flex-wrap gap-2">
+                            @foreach($attachments as $media)
+                                @php($url = URL::temporarySignedRoute(config('asset-guard.routes.prefix').'.incidents.download', now()->addMinutes(10), ['media' => $media->id]))
+                                <li class="flex items-center gap-2">
+                                    <a href="{{ $url }}" class="text-sm text-blue-600 hover:underline">
+                                        {{ $media->file_name }} ({{ number_format($media->size / 1024, 1) }} KB)
+                                    </a>
+                                    <flux:button size="xs" variant="danger" wire:click="deleteAttachment({{ $media->id }})">削除</flux:button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <div class="mt-4 flex justify-end">
                     <flux:button variant="ghost" wire:click="$set('showViewModal', false)">{{ __('asset-guard::common.close') }}</flux:button>
                 </div>
             @endif
+
         @endif
     </flux:modal>
 

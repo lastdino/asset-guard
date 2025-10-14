@@ -29,7 +29,7 @@ class BatchPerformer extends Component
 
     protected $listeners = ['open-batch-performer' => 'openFor'];
 
-    public function openFor(int $occurrenceId): void
+    public function openFor(int $occurrenceId, ?int $inspectorId = null, array $coInspectorIds = []): void
     {
         $this->reset(['forms','coInspectorIds']);
 
@@ -40,7 +40,8 @@ class BatchPerformer extends Component
         $this->occurrenceId = $occ->id;
         $this->assetId = $occ->asset_id;
         $this->checklistId = $occ->plan?->checklist?->id;
-        $this->inspectorId = auth()->id();
+        $this->inspectorId = $inspectorId ?? auth()->id();
+        $this->coInspectorIds = array_values(array_unique($coInspectorIds));
 
         $items = $occ->plan?->checklist?->items ?? collect();
         foreach ($items as $item) {

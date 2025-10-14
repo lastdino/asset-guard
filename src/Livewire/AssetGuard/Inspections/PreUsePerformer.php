@@ -29,14 +29,15 @@ class PreUsePerformer extends Component
     public ?string $note = null;
 
     #[On('open-pre-use-performer')]
-    public function openFor(int $assetId, int $checklistId): void
+    public function openFor(int $assetId, int $checklistId, ?int $inspectorId = null, array $coInspectorIds = []): void
     {
         $this->resetErrorBag();
         $this->resetValidation();
 
         $this->assetId = $assetId;
         $this->checklistId = $checklistId;
-        $this->inspectorId = auth()->id();
+        $this->inspectorId = $inspectorId ?? auth()->id();
+        $this->coInspectorIds = array_values(array_unique($coInspectorIds));
         $this->result = 'Pass';
         $this->note = null;
         $this->form = [];

@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'scheduled_exists' => '予定されている点検があります',
+    'scheduled_hint' => '既存の予定に対して実施するか、別のチェックリストを選択してください。',
+    'select_checklist' => 'チェックリストを選択',
+    'pre_use' => '使用前',
+    'start' => '開始',
+    'start_inspection' => '点検を開始',
     'heading_occurrences' => '点検（オカレンス）',
     'planned_for' => '予定日',
     'plan' => '計画',
@@ -51,11 +57,19 @@ return [
         'performed_at' => '実施日時',
         'performer' => '担当',
         'items' => '点検項目',
+        'unknown_item' => '不明な項目',
         'result' => '結果',
         'note' => '備考',
-        'unknown_item' => '不明な項目',
+
         'not_found' => '点検が見つかりません。',
         'attachments' => '添付',
         'download' => 'ダウンロード',
     ],
+    'upcoming' => '今後の予定',
+
+    // Quick/Inspector setup
+    'choose_inspector_title' => '点検者を設定',
+    'reset_inspector' => '点検者をリセット',
+    'please_set_inspector' => '点検者を設定してください。',
+    'please_set_inspector_hint' => 'まず点検者を設定してください。',
 ];
