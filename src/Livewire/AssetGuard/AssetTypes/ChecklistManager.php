@@ -17,6 +17,8 @@ class ChecklistManager extends Component
 
     public int $assetTypeId;
 
+    public bool $readonly = false;
+
     public string $search = '';
 
     public bool $openModal = false; // form modal
@@ -36,9 +38,10 @@ class ChecklistManager extends Component
         'require_before_activation' => false,
     ];
 
-    public function mount(int $assetTypeId): void
+    public function mount(int $assetTypeId, bool $readonly = false): void
     {
         $this->assetTypeId = $assetTypeId;
+        $this->readonly = $readonly;
     }
 
     public function updatingSearch(): void
@@ -57,6 +60,9 @@ class ChecklistManager extends Component
 
     public function openCreate(): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $this->editingId = null;
         $this->form = [
             'name' => '',
@@ -71,6 +77,9 @@ class ChecklistManager extends Component
 
     public function openEdit(int $id): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $c = Checklist::query()->forAssetType($this->assetTypeId)->findOrFail($id);
         $this->editingId = $c->id;
         $this->form = [
@@ -86,6 +95,9 @@ class ChecklistManager extends Component
 
     public function save(): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $validated = $this->validate([
             'form.name' => ['required','string','max:255'],
             'form.active' => ['required','boolean'],
@@ -125,6 +137,9 @@ class ChecklistManager extends Component
 
     public function delete(int $id): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $checklist = Checklist::query()->forAssetType($this->assetTypeId)->findOrFail($id);
 
         // Remove related per_use Scheduled plans before deleting the checklist
@@ -141,7 +156,8 @@ class ChecklistManager extends Component
             return;
         }
 
-        $newTrigger = ($cl->frequency_unit === 'PerUse') ? 'per_use' : 'time';
+
+        $newTrigger = ($cl->require_before_activation === true) ? 'per_use' : 'time';
 
         Asset::query()
             ->where('asset_type_id', $cl->asset_type_id)

@@ -53,7 +53,7 @@
                         @endif
                         <div>
                             <div class="font-medium">{{ $asset->code }} — {{ $asset->manufacturer }} — {{ $asset->name }}</div>
-                            <div class="text-sm text-zinc-500">{{ optional($asset->location)->name }} / {{ $asset->serial_no }} / {{ $asset->fixed_asset_no }}</div>
+                            <div class="text-sm text-zinc-500">{{ optional($asset->location)->name }} / {{ $asset->serial_no }} / {{ $asset->fixed_asset_no }} / {{ $asset->assetType->name }}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -301,7 +301,7 @@
                             {{ __('asset-guard::assets.filters.status.' . $selectedAsset->status) ?? $selectedAsset->status }}
                         </flux:badge>
                     </div>
-                    <div><span class="text-zinc-500">種別:</span> {{ $selectedAsset->type }}</div>
+                    <div><span class="text-zinc-500">種別:</span> {{ $selectedAsset->assetType->name }}</div>
                     @if($selectedAsset->serial_no)
                         <div><span class="text-zinc-500">シリアル:</span> {{ $selectedAsset->serial_no }}</div>
                     @endif
@@ -341,6 +341,14 @@
                     <flux:button size="sm" variant="subtle" href="{{ route(config('asset-guard.routes.prefix').'.maintenance-plans.index', ['assetId' => $selectedAssetId]) }}">{{ __('asset-guard::maintenance_plans.manage_for_asset') }}</flux:button>
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\ChecklistPanel', ['assetId' => $selectedAssetId])
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\ChecklistItemsPanel', ['assetId' => $selectedAssetId])
+
+                    <flux:separator />
+                    @if($selectedAsset?->asset_type_id)
+                        @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\AssetTypes\\ChecklistManager', [
+                            'assetTypeId' => $selectedAsset->asset_type_id,
+                            'readonly' => true,
+                        ])
+                    @endif
                 </div>
             @endif
 

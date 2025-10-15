@@ -91,6 +91,8 @@ class Index extends Component
         $this->infos = $info;
         $query = Occurrence::query()->with(['plan', 'asset'])
             ->whereBetween('planned_at', [$info['start'], $info['end']])
+            ->where('status', '!=', 'Archived')
+            ->whereHas('plan', fn($q) => $q->where('status', '!=', 'Archived'))
             ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId));
 
         $this->events = $query->latest('planned_at')->limit(500)->get()->map(function ($o): array {
@@ -127,6 +129,7 @@ class Index extends Component
     {
         return AssetGuardMaintenancePlan::query()
             ->with('asset')
+            ->where('status', '!=', 'Archived')
             ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId))
             ->latest('created_at')
             ->limit(100)
@@ -150,6 +153,7 @@ class Index extends Component
         $this->upcomingOccurrences = \Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence::query()
             ->with('asset')
             ->where('maintenance_plan_id', $planId)
+            ->where('status', '!=', 'Archived')
             ->whereNull('completed_at')
             ->orderBy('planned_at')
             ->limit(50)
@@ -197,10 +201,57 @@ class Index extends Component
         }
     }
 
+    private function isPreUsePlan(int $planId): bool
+    {
+        $p = AssetGuardMaintenancePlan::query()->select(['id','require_before_activation'])->findOrFail($planId);
+        return (bool) ($p->require_before_activation ?? false);
+    }
+
+    public function openOccurrenceCreate(int $planId): void
+    {
+        if ($this->isPreUsePlan($planId)) {
+            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
+            return;
+        }
+
+        $this->viewingPlanId = $planId;
+        // Ensure plan context (for showing asset/plan names in modal)
+        $this->viewingPlan = AssetGuardMaintenancePlan::query()->with('asset')->findOrFail($planId);
+        // reset to defaults
+        $this->editingOccurrenceId = null;
+        $this->occurrenceForm = [
+            'planned_at' => '',
+            'due_at' => null,
+            'status' => 'Scheduled',
+            'notes' => null,
+            'completed_at' => null,
+            'assigned_to' => null,
+        ];
+        $this->showOccurrenceEdit = true;
+    }
+
+    public function openOccurrenceCreateFromCalendar(string $date): void
+    {
+        if (! $this->viewingPlanId) {
+            return;
+        }
+        if ($this->isPreUsePlan($this->viewingPlanId)) {
+            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
+            return;
+        }
+        $this->openOccurrenceCreate($this->viewingPlanId);
+        // FullCalendar passes YYYY-MM-DD; align to datetime-local input format
+        $this->occurrenceForm['planned_at'] = Carbon::parse($date)->format('Y-m-d\TH:i');
+    }
+
     #[On('open-occurrence-show')]
     public function openOccurrenceEdit(int $occurrenceId): void
     {
-        $occ = Occurrence::query()->findOrFail($occurrenceId);
+        $occ = Occurrence::query()->with('plan.asset')->findOrFail($occurrenceId);
+
+        // Ensure plan context for the modal header
+        $this->viewingPlanId = $occ->maintenance_plan_id;
+        $this->viewingPlan = $occ->plan; // already loaded with asset
 
         $this->editingOccurrenceId = $occ->id;
         $this->occurrenceForm = [
@@ -217,7 +268,6 @@ class Index extends Component
 
     public function saveOccurrence(): void
     {
-
         $this->validate([
             'occurrenceForm.planned_at' => ['required', 'date'],
             'occurrenceForm.due_at' => ['nullable', 'date', 'after_or_equal:occurrenceForm.planned_at'],
@@ -227,25 +277,50 @@ class Index extends Component
             'occurrenceForm.assigned_to' => ['nullable', Rule::exists('users', 'id')],
         ]);
 
-        $occ = Occurrence::query()->findOrFail((int) $this->editingOccurrenceId);
-
-        $occ->planned_at = Carbon::parse($this->occurrenceForm['planned_at']);
-        $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
-        $occ->status = (string) $this->occurrenceForm['status'];
-        $occ->notes = $this->occurrenceForm['notes'];
-        $occ->assigned_to = $this->occurrenceForm['assigned_to'];
-
-        if ($occ->status === 'Completed') {
-            $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
-                ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
-                : now();
-        } else {
-            $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
-                ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
-                : null;
+        // Block manual creation for pre-use plans
+        if (! $this->editingOccurrenceId && $this->viewingPlanId && $this->isPreUsePlan($this->viewingPlanId)) {
+            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
+            return;
         }
 
-        $occ->save();
+        if ($this->editingOccurrenceId) {
+            // Update existing
+            $occ = Occurrence::query()->findOrFail((int) $this->editingOccurrenceId);
+            $occ->planned_at = Carbon::parse($this->occurrenceForm['planned_at']);
+            $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
+            $occ->status = (string) $this->occurrenceForm['status'];
+            $occ->notes = $this->occurrenceForm['notes'];
+            $occ->assigned_to = $this->occurrenceForm['assigned_to'];
+
+            if ($occ->status === 'Completed') {
+                $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
+                    ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
+                    : now();
+            } else {
+                $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
+                    ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
+                    : null;
+            }
+
+            $occ->save();
+        } else {
+            // Create new occurrence for current viewing plan
+            $planId = (int) $this->viewingPlanId;
+            $plan = AssetGuardMaintenancePlan::query()->findOrFail($planId);
+
+            $occ = new Occurrence();
+            $occ->maintenance_plan_id = $plan->id;
+            $occ->asset_id = $plan->asset_id;
+            $occ->planned_at = Carbon::parse($this->occurrenceForm['planned_at']);
+            $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
+            $occ->status = (string) $this->occurrenceForm['status'];
+            $occ->notes = $this->occurrenceForm['notes'];
+            $occ->assigned_to = $this->occurrenceForm['assigned_to'];
+            $occ->completed_at = ! empty($this->occurrenceForm['completed_at']) ? Carbon::parse((string) $this->occurrenceForm['completed_at']) : null;
+            $occ->save();
+
+            $this->editingOccurrenceId = $occ->id;
+        }
 
         if ($this->viewingPlanId) {
             $this->openShow($this->viewingPlanId);

@@ -9,7 +9,9 @@
         <div class="space-y-4 mt-3">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium">{{ __('asset-guard::checklists.manage') }}</h2>
-                <flux:button variant="primary" size="sm" wire:click="openCreate">{{ __('asset-guard::common.create') }}</flux:button>
+                @unless($readonly)
+                    <flux:button variant="primary" size="sm" wire:click="openCreate">{{ __('asset-guard::common.create') }}</flux:button>
+                @endunless
             </div>
 
             <div class="flex items-center gap-3">
@@ -46,14 +48,16 @@
                                     <span x-show="openIds[{{ $cl->id }}]">{{ __('asset-guard::common.hide') }}</span>
                                 </flux:button>
 
-                                <flux:button variant="subtle" wire:click="openEdit({{ $cl->id }})">{{ __('asset-guard::common.edit') }}</flux:button>
-                                <flux:button variant="danger" wire:click="delete({{ $cl->id }})">{{ __('asset-guard::common.delete') }}</flux:button>
+                                @unless($readonly)
+                                    <flux:button variant="subtle" wire:click="openEdit({{ $cl->id }})">{{ __('asset-guard::common.edit') }}</flux:button>
+                                    <flux:button variant="danger" wire:click="delete({{ $cl->id }})">{{ __('asset-guard::common.delete') }}</flux:button>
+                                @endunless
                             </div>
                         </div>
                         <flux:separator text="{{__('asset-guard::checklist_items.heading')}}" />
 
                         <div class="p-3" x-show="openIds[{{ $cl->id }}]" x-transition x-cloak>
-                            <livewire:asset-guard.inspections.checklist-items-editor :checklist-id="$cl->id" :key="'items-'.$cl->id" />
+                            <livewire:asset-guard.inspections.checklist-items-editor :checklist-id="$cl->id" :readonly="$readonly" :key="'items-'.$cl->id" />
                         </div>
                     </div>
                 @empty

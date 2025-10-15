@@ -1,7 +1,9 @@
 <div>
-    <flux:button variant="subtle" size="xs" wire:click="openCreate">
-        {{ __('asset-guard::checklists.add_item') }}
-    </flux:button>
+    @unless($readonly)
+        <flux:button variant="subtle" size="xs" wire:click="openCreate">
+            {{ __('asset-guard::checklists.add_item') }}
+        </flux:button>
+    @endunless
 
     <div class="mt-2 grid gap-2">
         @foreach($this->items as $it)
@@ -16,8 +18,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <flux:button variant="subtle" size="xs" wire:click="openEdit({{ $it->id }})">{{ __('asset-guard::common.edit') }}</flux:button>
-                    <flux:button variant="danger" size="xs" wire:click="delete({{ $it->id }})">{{ __('asset-guard::common.delete') }}</flux:button>
+                    @unless($readonly)
+                        <flux:button variant="subtle" size="xs" wire:click="openEdit({{ $it->id }})">{{ __('asset-guard::common.edit') }}</flux:button>
+                        <flux:button variant="danger" size="xs" wire:click="delete({{ $it->id }})">{{ __('asset-guard::common.delete') }}</flux:button>
+                    @endunless
                 </div>
             </div>
         @endforeach
@@ -45,6 +49,7 @@
                 @enderror
             @endif
 
+            @unless($readonly)
             <div class="mt-2 grid gap-2">
                 <flux:input type="file" :label="__('asset-guard::checklist_items.reference_photo')" wire:model="referencePhoto" accept="image/*" />
                 @error('referencePhoto')
@@ -64,13 +69,16 @@
                     </div>
                 @endif
             </div>
+            @endunless
             <div class="grid grid-cols-3 gap-2">
                 <flux:input type="number" :label="__('asset-guard::checklists.sort_order')" wire:model.defer="form.sort_order" />
             </div>
         </div>
         <div class="flex justify-end gap-2 mt-2">
             <flux:button variant="ghost" wire:click="$set('open', false)">{{ __('asset-guard::common.cancel') }}</flux:button>
-            <flux:button variant="primary" wire:click="save">{{ __('asset-guard::common.save') }}</flux:button>
+            @unless($readonly)
+                <flux:button variant="primary" wire:click="save">{{ __('asset-guard::common.save') }}</flux:button>
+            @endunless
         </div>
     </flux:modal>
 </div>

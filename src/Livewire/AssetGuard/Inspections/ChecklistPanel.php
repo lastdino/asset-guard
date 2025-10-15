@@ -135,7 +135,7 @@ class ChecklistPanel extends Component
 
     protected function toTriggerType(AssetGuardInspectionChecklist $cl): string
     {
-        return ($cl->frequency_unit === 'PerUse') ? 'per_use' : 'time';
+        return ($cl->require_before_activation === true) ? 'per_use' : 'time';
     }
 
     protected function syncPlanForChecklist(AssetGuardInspectionChecklist $cl): void

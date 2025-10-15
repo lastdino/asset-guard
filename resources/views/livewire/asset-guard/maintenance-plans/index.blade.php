@@ -53,7 +53,7 @@
         </div>
 
         <div class="col-span-12 lg:col-span-8">
-            <div id="maintenance-calendar" x-data="initCalendar" wire:ignore class="bg-white dark:bg-neutral-900 rounded p-4"></div>
+            <div id="maintenance-calendar" x-data="initCalendar" x-bind:data-pre-use="{{ $viewingPlan && $viewingPlan->require_before_activation ? 'true' : 'false' }}" wire:ignore class="bg-white dark:bg-neutral-900 rounded p-4"></div>
         </div>
     </div>
 
@@ -142,7 +142,14 @@
                 </div>
 
                 <div class="mt-4">
-                    <div class="font-medium mb-2">{{ __('asset-guard::inspections.upcoming') ?? 'Upcoming' }}</div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-medium">{{ __('asset-guard::inspections.upcoming') ?? 'Upcoming' }}</div>
+                        @if($viewingPlanId && (! $viewingPlan?->require_before_activation))
+                            <flux:button variant="filled" size="xs" wire:click="openOccurrenceCreate({{ $viewingPlanId }})">
+                                {{ __('asset-guard::occurrences.add') }}
+                            </flux:button>
+                        @endif
+                    </div>
                     <div class="grid gap-2">
                         @forelse($upcomingOccurrences as $o)
                             <div class="flex items-center justify-between text-sm text-neutral-700 dark:text-neutral-200">
@@ -245,9 +252,16 @@
 
     {{-- Occurrence Edit modal --}}
     <flux:modal wire:model="showOccurrenceEdit">
-        <flux:heading size="md">{{ __('asset-guard::occurrences.edit_title') }}</flux:heading>
+        <flux:heading size="md">{{ $editingOccurrenceId ? __('asset-guard::occurrences.edit_title') : __('asset-guard::occurrences.create_title') }}</flux:heading>
 
         <div class="space-y-4 bg-white dark:bg-neutral-900 rounded p-4">
+            @if($viewingPlan)
+                <div class="text-sm text-neutral-700 dark:text-neutral-200">
+                    <div class="font-medium">{{ $viewingPlan->title }}</div>
+                    <div>{{ __('asset-guard::maintenance_plans.asset') }}: {{ optional($viewingPlan->asset)->name ?? ('#'.$viewingPlan->asset_id) }}</div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <flux:input type="datetime-local" label="{{__('asset-guard::occurrences.planned_at')}}" wire:model.live="occurrenceForm.planned_at" />
                 <flux:input type="datetime-local" label="{{__('asset-guard::occurrences.due_at')}}" wire:model.live="occurrenceForm.due_at" />
@@ -316,6 +330,11 @@
                 initialView: 'dayGridMonth',
                 locale: FullCalendar.jaLocale,
                 editable: true,
+                dateClick: info => {
+                    const isPreUse = calendarEl?.dataset?.preUse === 'true';
+                    if (isPreUse) { return; }
+                    $wire.openOccurrenceCreateFromCalendar(info.dateStr);
+                },
                 eventSources: [
                     {
                         events:function(fetchInfo, successCallback, failureCallback) {

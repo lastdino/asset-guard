@@ -2,13 +2,16 @@
 
 namespace Lastdino\AssetGuard\Models;
 
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Lastdino\AssetGuard\Observers\AssetGuardAssetObserver;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Image\Enums\Fit;
 
+#[ObservedBy([AssetGuardAssetObserver::class])]
 class AssetGuardAsset extends Model implements HasMedia
 {
     protected static function booted(): void

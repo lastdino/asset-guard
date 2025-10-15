@@ -17,6 +17,8 @@ class ChecklistItemsEditor extends Component
 
     public int $checklistId;
 
+    public bool $readonly = false;
+
     public bool $open = false;
 
     public ?int $editingId = null;
@@ -33,14 +35,18 @@ class ChecklistItemsEditor extends Component
         'sort_order' => 0,
     ];
 
-    public function mount(int $checklistId, bool $autoOpen = false): void
+    public function mount(int $checklistId, bool $autoOpen = false, bool $readonly = false): void
     {
         $this->checklistId = $checklistId;
         $this->open = $autoOpen;
+        $this->readonly = $readonly;
     }
 
     public function openCreate(): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $this->editingId = null;
         $this->form = [
             'name' => '',
@@ -55,6 +61,9 @@ class ChecklistItemsEditor extends Component
 
     public function openEdit(int $id): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $item = Item::query()->where('checklist_id', $this->checklistId)->findOrFail($id);
         $this->editingId = $item->id;
         $this->form = [
@@ -70,6 +79,9 @@ class ChecklistItemsEditor extends Component
 
     public function save(): void
     {
+        if ($this->readonly) {
+            return;
+        }
         $rules = [
             'form.name' => ['required','string','max:255'],
             'form.method' => ['required', Rule::in(['text','number','select','boolean'])],
@@ -106,6 +118,9 @@ class ChecklistItemsEditor extends Component
 
     public function delete(int $id): void
     {
+        if ($this->readonly) {
+            return;
+        }
         Item::query()->where('checklist_id', $this->checklistId)->findOrFail($id)->delete();
         $this->dispatch('checklist-items-updated', id: $this->checklistId);
     }

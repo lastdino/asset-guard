@@ -44,7 +44,16 @@ class AssetGuardServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'asset-guard');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
+        $this->registerEventListeners();
         $this->loadLivewireComponents();
+    }
+
+    protected function registerEventListeners(): void
+    {
+        \Illuminate\Support\Facades\Event::listen(
+            \Lastdino\AssetGuard\Events\AssetTypeChanged::class,
+            [\Lastdino\AssetGuard\Listeners\SyncMaintenancePlansOnAssetTypeChanged::class, 'handle']
+        );
     }
 
     // custom methods for livewire components
