@@ -7,6 +7,7 @@
             <div class="font-medium">{{ $itemName }}</div>
 
             <flux:select :label="__('asset-guard::inspections.inspector')" wire:model.defer="inspectorId">
+                <option value=""></option>
                 @foreach(\App\Models\User::orderBy('name')->get(['id','name']) as $u)
                     <option value="{{ $u->id }}">{{ $u->name }}</option>
                 @endforeach

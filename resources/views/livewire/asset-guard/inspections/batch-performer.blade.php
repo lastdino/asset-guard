@@ -5,6 +5,7 @@
         <div class="mt-3 grid gap-3">
             <div class="grid gap-2">
                 <flux:select label="点検者" wire:model.defer="inspectorId">
+                    <option value=""></option>
                     @foreach(\App\Models\User::orderBy('name')->get(['id','name']) as $u)
                         <option value="{{ $u->id }}">{{ $u->name }}</option>
                     @endforeach

@@ -6,7 +6,7 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
-use Lastdino\AssetGuard\Jobs\ComputeInspectionSchedules;
+use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
 use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenanceOccurrence};
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -173,7 +173,7 @@ class BatchPerformer extends Component
         if ($cl && $cl->frequency_unit) {
             $mult = (int) ($cl->frequency_value ?? 1);
             $base = Carbon::parse($occ->planned_at);
-            $next = ComputeInspectionSchedules::nextDueDate($cl->frequency_unit, max(1, $mult), $base);
+            $next = InspectionScheduleCalculator::nextDueDate($cl->frequency_unit, max(1, $mult), $base);
             if ($next) {
                 AssetGuardMaintenanceOccurrence::query()->firstOrCreate([
                     'maintenance_plan_id' => $occ->maintenance_plan_id,

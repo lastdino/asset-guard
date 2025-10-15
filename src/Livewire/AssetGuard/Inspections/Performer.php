@@ -6,7 +6,7 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Carbon;
-use Lastdino\AssetGuard\Jobs\ComputeInspectionSchedules;
+use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
 use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenanceOccurrence, AssetGuardInspectionChecklistItem};
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -192,7 +192,7 @@ class Performer extends Component
         ]);
 
         $baseDate = Carbon::parse($occurrence->planned_at);
-        $nextDue = ComputeInspectionSchedules::nextDueDate($item->frequency_unit, (int) $item->frequency_value, $baseDate);
+        $nextDue = InspectionScheduleCalculator::nextDueDate($item->frequency_unit, (int) $item->frequency_value, $baseDate);
         if ($nextDue) {
             AssetGuardMaintenanceOccurrence::query()->firstOrCreate([
                 'maintenance_plan_id' => $occurrence->maintenance_plan_id,
