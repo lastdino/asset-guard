@@ -84,5 +84,6 @@ class AssetGuardServiceProvider extends ServiceProvider
         Livewire::component('asset-guard.asset-types.index', \Lastdino\AssetGuard\Livewire\AssetGuard\AssetTypes\Index::class);
 
         Livewire::component('asset-guard.asset-types.checklist-manager', \Lastdino\AssetGuard\Livewire\AssetGuard\AssetTypes\ChecklistManager::class);
+        Livewire::component('asset-guard.inspections.performer-unified', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PerformerUnified::class);
     }
 }

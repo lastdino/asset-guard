@@ -7,7 +7,8 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionItemResult;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
+// use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 use Livewire\Component;
 
 class Index extends Component
@@ -19,49 +20,17 @@ class Index extends Component
         $this->assetId = $assetId;
     }
 
-    public function getDueOccurrencesProperty()
-    {
-        return Occurrence::query()
+    public function getDuePlansProperty(){
+        return AssetGuardMaintenancePlan::query()
             ->where('asset_id', $this->assetId)
-            ->with(['asset', 'plan.checklist'])
-            ->whereDate('planned_at', '<=', Carbon::now())
-            ->whereIn('status', ['Scheduled','Overdue'])
-            ->orderBy('planned_at')
+            ->with(['asset', 'checklist'])
+            ->whereDate('scheduled_at', '<=', Carbon::now())
+            ->whereIn('status', ['Scheduled'])
+            ->orderBy('scheduled_at')
             ->limit(100)
             ->get();
     }
 
-    public function execute(int $occurrenceId): void
-    {
-        $occ = Occurrence::query()->with(['plan.checklist.items', 'asset'])->findOrFail($occurrenceId);
-
-        $inspection = AssetGuardInspection::query()->create([
-            'asset_id' => $occ->asset_id,
-            'performed_by_user_id' => auth()->id(),
-            'performed_at' => Carbon::now(),
-            'checklist_id' => $occ->plan?->checklist?->id,
-            'status' => 'Completed',
-        ]);
-
-        $items = $occ->plan?->checklist?->items ?: collect();
-        foreach ($items as $item) {
-            AssetGuardInspectionItemResult::query()->create([
-                'inspection_id' => $inspection->id,
-                'checklist_item_id' => $item->id,
-                'result' => 'Pass',
-                'value' => null,
-                'note' => null,
-                'is_draft' => false,
-            ]);
-        }
-
-        $occ->update([
-            'status' => 'Completed',
-            'completed_at' => Carbon::now(),
-        ]);
-
-        $this->dispatch('executed');
-    }
 
     public function render()
     {

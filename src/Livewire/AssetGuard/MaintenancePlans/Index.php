@@ -8,9 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
-use Lastdino\AssetGuard\Services\GenerateMaintenanceOccurrences;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -23,17 +21,16 @@ class Index extends Component
     public array $events = [];
 
     // Modal state
-    public bool $showCreate = false;
+    public bool $showPlan = false;
     public bool $showShow = false;
-    public bool $showEdit = false;
-    public ?int $viewingPlanId = null;
+
+    public ?int $viewingListId = null;
     public ?int $editingPlanId = null;
 
     public $infos;
 
     // Integrated show state
-    public ?AssetGuardMaintenancePlan $viewingPlan = null;
-    public array $upcomingOccurrences = [];
+    public ?AssetGuardInspectionChecklist $viewingList = null;
 
     // Integrated edit/create form state
     public ?AssetGuardMaintenancePlan $editingPlan = null;
@@ -42,30 +39,13 @@ class Index extends Component
         'checklist_id' => null,
         'title' => '',
         'description' => null,
-        'start_date' => '',
-        'end_date' => null,
-        'timezone' => '',
+        'scheduled_at' => '',
+        'due_at' => null,
+        'completed_at' => null,
         'lead_time_days' => 3,
         'assigned_to' => null,
         'status' => 'Scheduled',
-        'require_before_activation' => false,
     ];
-
-    // Occurrence edit modal state
-    public bool $showOccurrenceEdit = false;
-    public ?int $editingOccurrenceId = null;
-    public array $occurrenceForm = [
-        'planned_at' => '',
-        'due_at' => null,
-        'status' => 'Scheduled',
-        'notes' => null,
-        'completed_at' => null,
-        'assigned_to' => null,
-    ];
-
-    // Occurrence delete confirm state
-    public bool $showOccurrenceDelete = false;
-    public ?int $deletingOccurrenceId = null;
 
     public function mount(): void
     {
@@ -73,12 +53,10 @@ class Index extends Component
     }
 
     #[On('calendar-dropped')]
-    public function reschedule(int $occurrenceId, string $newPlannedAt): void
+    public function reschedule(int $planId, string $newPlannedAt): void
     {
-
-
-        $occ = Occurrence::query()->with('plan')->findOrFail($occurrenceId);
-        $occ->planned_at = Carbon::parse($newPlannedAt);
+        $occ = AssetGuardMaintenancePlan::query()->findOrFail($planId);
+        $occ->scheduled_at = Carbon::parse($newPlannedAt);
         $occ->save();
 
         $this->dispatch('notify', message: 'Rescheduled');
@@ -89,21 +67,20 @@ class Index extends Component
     public function loadCalendar($info)
     {
         $this->infos = $info;
-        $query = Occurrence::query()->with(['plan', 'asset'])
-            ->whereBetween('planned_at', [$info['start'], $info['end']])
-            ->where('status', '!=', 'Archived')
-            ->whereHas('plan', fn($q) => $q->where('status', '!=', 'Archived'))
+        $query = AssetGuardMaintenancePlan::query()->with([ 'asset'])
+            ->whereBetween('scheduled_at', [$info['start'], $info['end']])
+            ->whereNotIN('status', ['Completed', 'Cancelled', 'Archived'])
             ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId));
 
-        $this->events = $query->latest('planned_at')->limit(500)->get()->map(function ($o): array {
+        $this->events = $query->latest('scheduled_at')->limit(500)->get()->map(function ($o): array {
             return [
                 'id' => $o->id,
-                'title' => optional($o->asset)->name.' · '.($o->plan->title ?? 'Plan'),
-                'start' => $o->planned_at?->toIso8601String(),
+                'title' => optional($o->asset)->name.' · '.($o->title ?? 'Plan'),
+                'start' => $o->scheduled_at?->toIso8601String(),
                 // Keep URL for non-JS fallback
                 //'url' => route('asset-guard.maintenance-plans.show', $o->maintenance_plan_id),
                 // Provide planId to open modal
-                'planId' => $o->maintenance_plan_id,
+                'planId' => $o->id,
             ];
         })->all();
 
@@ -125,245 +102,89 @@ class Index extends Component
         $this->form['checklist_id'] = null;
     }
 
-    public function getPlansProperty()
+    public function getListsProperty()
     {
-        return AssetGuardMaintenancePlan::query()
-            ->with('asset')
-            ->where('status', '!=', 'Archived')
-            ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId))
-            ->latest('created_at')
-            ->limit(100)
+        return AssetGuardInspectionChecklist::query()
+            ->where('active', true)
+            ->where(function ($query)  {
+                $query->when($this->assetId, function ($q) {
+                    $q->where('asset_id', $this->assetId)
+                        ->orWhereExists(function ($subquery) {
+                            $subquery->select('id')
+                                ->from('asset_guard_assets')
+                                ->whereColumn('asset_guard_inspection_checklists.asset_type_id', 'asset_guard_assets.asset_type_id')
+                                ->where('asset_guard_assets.id', $this->assetId)
+                                ->where('asset_guard_inspection_checklists.applies_to', 'asset_type');
+                        });
+                });
+            })
+            ->with(['asset', 'assetType'])
             ->get();
     }
 
-    // Modal actions
-    public function openCreate(): void
+    public function openShow(int $listId): void
     {
-        $this->prepareEditContext(null, $this->assetId);
-        $this->showCreate = true;
-    }
-
-    public function openShow(int $planId): void
-    {
-        $this->viewingPlanId = $planId;
-        $this->viewingPlan = AssetGuardMaintenancePlan::query()
+        $this->viewingListId = $listId;
+        $this->viewingList = AssetGuardInspectionChecklist::query()
             ->with('asset')
-            ->findOrFail($planId);
+            ->findOrFail($listId);
 
-        $this->upcomingOccurrences = \Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence::query()
-            ->with('asset')
-            ->where('maintenance_plan_id', $planId)
-            ->where('status', '!=', 'Archived')
-            ->whereNull('completed_at')
-            ->orderBy('planned_at')
-            ->limit(50)
-            ->get()
-            ->toArray();
 
         $this->showShow = true;
     }
 
-    public function openEdit(int $planId): void
+    public function openPlanCreate(): void
     {
-        $this->prepareEditContext($planId, null);
-        $this->showEdit = true;
+        $this->editingPlanId = null;
+
+        $this->form =  [
+            'asset_id' => $this->assetId,
+            'checklist_id' => $this->viewingListId,
+            'title' => '',
+            'description' => null,
+            'scheduled_at' => '',
+            'due_at' => null,
+            'completed_at' => null,
+            'lead_time_days' => 3,
+            'assigned_to' => null,
+            'status' => 'Scheduled',
+        ];
+        $this->showPlan = true;
     }
 
-    private function prepareEditContext(?int $planId, ?int $assetContextId = null): void
+    public function openPlanEdit(int $planId): void
     {
-        $model = $planId
-            ? AssetGuardMaintenancePlan::query()->findOrFail($planId)
-            : new AssetGuardMaintenancePlan([
-                'timezone' => (string) config('app.timezone'),
-                'lead_time_days' => 3,
-                'status' => 'Scheduled',
-            ]);
+        $model = AssetGuardMaintenancePlan::query()->with('asset')->findOrFail($planId);
 
+        $this->editingPlanId = $planId;
         $this->editingPlan = $model;
 
-        $this->form = [
+        $this->form =  [
             'asset_id' => $model->asset_id,
             'checklist_id' => $model->checklist_id,
             'title' => (string) ($model->title ?? ''),
             'description' => $model->description,
-            'start_date' => optional($model->start_date)->toDateString() ?? '',
-            'end_date' => optional($model->end_date)->toDateString(),
+            'scheduled_at' => optional($model->scheduled_at)->toDateString() ?? '',
+            'due_at' => optional($model->due_at)->toDateString(),
             'timezone' => (string) ($model->timezone ?: config('app.timezone')),
             'lead_time_days' => (int) ($model->lead_time_days ?? 3),
             'assigned_to' => $model->assigned_to,
             'status' => (string) ($model->status ?: 'Scheduled'),
-            'require_before_activation' => (bool) ($model->require_before_activation ?? false),
         ];
-
-        // 新規作成時のみ、設備コンテキストをプリセット
-        if (! $model->exists && $assetContextId) {
-            $this->form['asset_id'] = $assetContextId;
-        }
+        $this->showPlan = true;
     }
 
-    private function isPreUsePlan(int $planId): bool
+    public function openPlanCreateFromCalendar(string $date): void
     {
-        $p = AssetGuardMaintenancePlan::query()->select(['id','require_before_activation'])->findOrFail($planId);
-        return (bool) ($p->require_before_activation ?? false);
+        $this->openPlanCreate();
+        $this->form['scheduled_at'] = Carbon::parse($date)->toDateString();
     }
 
-    public function openOccurrenceCreate(int $planId): void
+    public function deletePlan(int $planId): void
     {
-        if ($this->isPreUsePlan($planId)) {
-            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
-            return;
-        }
-
-        $this->viewingPlanId = $planId;
-        // Ensure plan context (for showing asset/plan names in modal)
-        $this->viewingPlan = AssetGuardMaintenancePlan::query()->with('asset')->findOrFail($planId);
-        // reset to defaults
-        $this->editingOccurrenceId = null;
-        $this->occurrenceForm = [
-            'planned_at' => '',
-            'due_at' => null,
-            'status' => 'Scheduled',
-            'notes' => null,
-            'completed_at' => null,
-            'assigned_to' => null,
-        ];
-        $this->showOccurrenceEdit = true;
-    }
-
-    public function openOccurrenceCreateFromCalendar(string $date): void
-    {
-        if (! $this->viewingPlanId) {
-            return;
-        }
-        if ($this->isPreUsePlan($this->viewingPlanId)) {
-            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
-            return;
-        }
-        $this->openOccurrenceCreate($this->viewingPlanId);
-        // FullCalendar passes YYYY-MM-DD; align to datetime-local input format
-        $this->occurrenceForm['planned_at'] = Carbon::parse($date)->format('Y-m-d\TH:i');
-    }
-
-    #[On('open-occurrence-show')]
-    public function openOccurrenceEdit(int $occurrenceId): void
-    {
-        $occ = Occurrence::query()->with('plan.asset')->findOrFail($occurrenceId);
-
-        // Ensure plan context for the modal header
-        $this->viewingPlanId = $occ->maintenance_plan_id;
-        $this->viewingPlan = $occ->plan; // already loaded with asset
-
-        $this->editingOccurrenceId = $occ->id;
-        $this->occurrenceForm = [
-            'planned_at' => optional($occ->planned_at)->format('Y-m-d\TH:i') ?? '',
-            'due_at' => optional($occ->due_at)->format('Y-m-d\TH:i'),
-            'status' => (string) ($occ->status ?: 'Scheduled'),
-            'notes' => $occ->notes,
-            'completed_at' => optional($occ->completed_at)->format('Y-m-d\TH:i'),
-            'assigned_to' => $occ->assigned_to,
-        ];
-
-        $this->showOccurrenceEdit = true;
-    }
-
-    public function saveOccurrence(): void
-    {
-        $this->validate([
-            'occurrenceForm.planned_at' => ['required', 'date'],
-            'occurrenceForm.due_at' => ['nullable', 'date', 'after_or_equal:occurrenceForm.planned_at'],
-            'occurrenceForm.status' => ['required', 'string'],
-            'occurrenceForm.notes' => ['nullable', 'string'],
-            'occurrenceForm.completed_at' => ['nullable', 'date', 'after_or_equal:occurrenceForm.planned_at'],
-            'occurrenceForm.assigned_to' => ['nullable', Rule::exists('users', 'id')],
-        ]);
-
-        // Block manual creation for pre-use plans
-        if (! $this->editingOccurrenceId && $this->viewingPlanId && $this->isPreUsePlan($this->viewingPlanId)) {
-            $this->dispatch('notify', message: __('asset-guard::occurrences.create_disabled_for_pre_use'));
-            return;
-        }
-
-        if ($this->editingOccurrenceId) {
-            // Update existing
-            $occ = Occurrence::query()->findOrFail((int) $this->editingOccurrenceId);
-            $occ->planned_at = Carbon::parse($this->occurrenceForm['planned_at']);
-            $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
-            $occ->status = (string) $this->occurrenceForm['status'];
-            $occ->notes = $this->occurrenceForm['notes'];
-            $occ->assigned_to = $this->occurrenceForm['assigned_to'];
-
-            if ($occ->status === 'Completed') {
-                $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
-                    ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
-                    : now();
-            } else {
-                $occ->completed_at = ! empty($this->occurrenceForm['completed_at'])
-                    ? Carbon::parse((string) $this->occurrenceForm['completed_at'])
-                    : null;
-            }
-
-            $occ->save();
-        } else {
-            // Create new occurrence for current viewing plan
-            $planId = (int) $this->viewingPlanId;
-            $plan = AssetGuardMaintenancePlan::query()->findOrFail($planId);
-
-            $occ = new Occurrence();
-            $occ->maintenance_plan_id = $plan->id;
-            $occ->asset_id = $plan->asset_id;
-            $occ->planned_at = Carbon::parse($this->occurrenceForm['planned_at']);
-            $occ->due_at = ! empty($this->occurrenceForm['due_at']) ? Carbon::parse((string) $this->occurrenceForm['due_at']) : null;
-            $occ->status = (string) $this->occurrenceForm['status'];
-            $occ->notes = $this->occurrenceForm['notes'];
-            $occ->assigned_to = $this->occurrenceForm['assigned_to'];
-            $occ->completed_at = ! empty($this->occurrenceForm['completed_at']) ? Carbon::parse((string) $this->occurrenceForm['completed_at']) : null;
-            $occ->save();
-
-            $this->editingOccurrenceId = $occ->id;
-        }
-
-        if ($this->viewingPlanId) {
-            $this->openShow($this->viewingPlanId);
-        }
-        if ($this->infos) {
-            $this->loadCalendar($this->infos);
-            $this->dispatch('refreshCalendar');
-        }
-
-        $this->dispatch('notify', message: __('asset-guard::occurrences.saved'));
-        $this->showOccurrenceEdit = false;
-    }
-
-    public function confirmDeleteOccurrence(int $occurrenceId): void
-    {
-        $this->deletingOccurrenceId = $occurrenceId;
-        $this->showOccurrenceDelete = true;
-    }
-
-    public function deleteOccurrence(): void
-    {
-
-        $occ = Occurrence::query()->findOrFail((int) $this->deletingOccurrenceId);
-        $planId = $occ->maintenance_plan_id;
-        $occ->delete();
-
-        // Refresh lists and calendar
-        if ($this->viewingPlanId) {
-            $this->openShow($this->viewingPlanId);
-        } elseif ($planId) {
-            // Ensure upcoming occurrences for the plan are consistent even if modal not open
-            $this->viewingPlanId = $planId;
-            $this->openShow($planId);
-        }
-
-        if ($this->infos) {
-            $this->loadCalendar($this->infos);
-            $this->dispatch('refreshCalendar');
-        }
-
-        $this->dispatch('notify', message: __('asset-guard::occurrences.deleted'));
-        $this->showOccurrenceDelete = false;
-        $this->deletingOccurrenceId = null;
+        $plan = AssetGuardMaintenancePlan::query()->findOrFail($planId);
+        $plan->delete();
+        $this->dispatch('notify', message: __('asset-guard::plans.deleted'));
     }
 
     protected function rules(): array
@@ -373,11 +194,10 @@ class Index extends Component
             'form.checklist_id' => [
                 'required',
                 Rule::exists('asset_guard_inspection_checklists', 'id')
-                    ->where(fn($q) => $q->where('asset_id', $this->form['asset_id'] ?? 0)),
             ],
             'form.title' => ['nullable', 'string', 'max:255'],
             'form.description' => ['nullable', 'string'],
-            'form.start_date' => [
+            'form.scheduled_at' => [
                 'nullable',
                 'date',
                 Rule::requiredIf(function (): bool {
@@ -390,73 +210,22 @@ class Index extends Component
                     return ! ($cl && $cl->frequency_unit === 'PerUse');
                 }),
             ],
-            'form.end_date' => ['nullable', 'date', 'after_or_equal:form.start_date'],
+            'form.due_at' => ['nullable', 'date', 'after_or_equal:form.start_date'],
+            'form.completed_at' => ['nullable', 'date'],
             'form.timezone' => ['required', 'string'],
             'form.lead_time_days' => ['nullable', 'integer', 'min:0', 'max:30'],
             'form.assigned_to' => ['nullable', Rule::exists('users', 'id')],
             'form.status' => ['required', 'string'],
-            'form.require_before_activation' => ['nullable','boolean'],
         ];
     }
 
     public function save(): void
     {
-
         $this->validate();
-
         // Auto-generate title
-        $this->form['title'] = $this->makeDefaultTitle();
-
-        // Auto-set trigger_type based on checklist frequency
-        $trigger = 'time';
-        if (! empty($this->form['checklist_id'])) {
-            $cl = AssetGuardInspectionChecklist::find($this->form['checklist_id']);
-            if ($cl && $cl->frequency_unit === 'PerUse') {
-                $trigger = 'per_use';
-            }
-        }
-
-        $plan = $this->editingPlan ?? new AssetGuardMaintenancePlan();
-        $plan->fill($this->form);
-        $plan->trigger_type = $trigger;
-        $plan->save();
-
-        $this->editingPlan = $plan; // ensure id
-
-        // Generate (or top-up) future occurrences
-        (new GenerateMaintenanceOccurrences())->handle($plan);
-
+        $this->form['title'] = $this->form['scheduled_at']."/".$this->form['assigned_to'];
+        AssetGuardMaintenancePlan::updateOrCreate(['id'=>$this->editingPlanId],$this->form);
         $this->dispatch('saved');
-    }
-
-    private function makeDefaultTitle(): string
-    {
-        $asset = $this->editingPlan && $this->editingPlan->exists
-            ? ($this->editingPlan->relationLoaded('asset') ? $this->editingPlan->asset : $this->editingPlan->asset()->first())
-            : ($this->form['asset_id'] ? AssetGuardAsset::find($this->form['asset_id']) : null);
-
-        $checklist = $this->editingPlan && $this->editingPlan->exists
-            ? ($this->editingPlan->relationLoaded('checklist') ? $this->editingPlan->checklist : $this->editingPlan->checklist()->first())
-            : ($this->form['checklist_id'] ? AssetGuardInspectionChecklist::find($this->form['checklist_id']) : null);
-
-        $assetPart = trim(implode(' ', array_filter([
-            $asset?->code,
-            $asset?->name,
-        ])));
-
-        $freqUnit = $checklist?->frequency_unit ?: null;
-        $freqVal = (int) ($checklist?->frequency_value ?? 1);
-        $freqLabel = $freqUnit === 'PerUse'
-            ? __('asset-guard::plans.require_before_activation')
-            : ($freqUnit ? ($freqVal > 1 ? ($freqVal . 'x ' . $freqUnit) : $freqUnit) : null);
-
-        $parts = array_filter([
-            $assetPart ?: null,
-            $checklist?->name,
-            $freqLabel ? '(' . $freqLabel . ')' : null,
-        ]);
-
-        return $parts ? implode(' — ', array_filter([$assetPart, $checklist?->name])) . ($freqLabel ? ' ' . '(' . $freqLabel . ')' : '') : 'Maintenance Plan';
     }
 
     public function getAssetsProperty()
@@ -467,14 +236,6 @@ class Index extends Component
             ->get(['id', 'name']);
     }
 
-    public function getChecklistsProperty()
-    {
-        return AssetGuardInspectionChecklist::query()
-            ->when(! empty($this->form['asset_id']), fn($q) => $q->where('asset_id', $this->form['asset_id']))
-            ->orderBy('name')
-            ->get(['id', 'name', 'frequency_unit', 'frequency_value']);
-    }
-
     #[On('saved')]
     public function onPlanSaved(): void
     {
@@ -483,15 +244,9 @@ class Index extends Component
         $this->dispatch('refreshCalendar');
     }
 
-    #[On('open-plan-show')]
-    public function onOpenPlanShow(int $planId): void
-    {
-        $this->openShow($planId);
-    }
-
     public function closeModals(): void
     {
-        $this->reset(['showCreate', 'showShow', 'showEdit', 'viewingPlanId', 'editingPlanId', 'viewingPlan', 'editingPlan']);
+        $this->reset(['showPlan','showShow', 'viewingListId', 'editingPlanId', 'viewingList', 'editingPlan']);
     }
 
     public function render()

@@ -133,11 +133,6 @@ class ChecklistPanel extends Component
         $this->dispatch('$refresh');
     }
 
-    protected function toTriggerType(AssetGuardInspectionChecklist $cl): string
-    {
-        return ($cl->require_before_activation === true) ? 'per_use' : 'time';
-    }
-
     protected function syncPlanForChecklist(AssetGuardInspectionChecklist $cl): void
     {
         // Only for asset-applied checklists on this asset
@@ -151,43 +146,44 @@ class ChecklistPanel extends Component
             return;
         }
 
-        $newTrigger = $this->toTriggerType($cl);
+        $isPerUse = (bool) ($cl->require_before_activation ?? false);
 
-        // Fetch existing Scheduled plans for this checklist (any trigger type)
+        // Fetch existing Scheduled plans for this checklist
         $existing = Plan::query()
             ->where('asset_id', $this->assetId)
             ->where('checklist_id', $cl->id)
             ->where('status', 'Scheduled')
             ->get();
 
-        // Find current matching trigger, also allow null (legacy)
-        $current = $existing->firstWhere('trigger_type', $newTrigger)
-            ?? $existing->firstWhere('trigger_type', null);
-
-        // Archive any Scheduled plans that don't match the new trigger
-        $existing
-            ->filter(fn ($p) => (string) $p->trigger_type !== (string) $newTrigger)
-            ->each(fn ($p) => $p->update(['status' => 'Archived']));
-
-        if ($current) {
-            $current->update([
-                'title' => $cl->name,
-                'trigger_type' => $newTrigger,
-                'require_before_activation' => (bool) $cl->require_before_activation,
-                'timezone' => config('app.timezone'),
-            ]);
+        if ($isPerUse) {
+            // Per-use: archive any Scheduled plans (we don't keep plans for per-use)
+            $existing->each(fn ($p) => $p->update(['status' => 'Archived']));
             return;
         }
 
-        // Create a new plan if none exists for the desired trigger
+        // Time-based: ensure a Scheduled plan exists with scheduled_at
+        $current = $existing->first();
+
+        if ($current) {
+            $payload = [
+                'title' => $cl->name,
+                'timezone' => config('app.timezone'),
+            ];
+            if (empty($current->scheduled_at)) {
+                $payload['scheduled_at'] = now();
+            }
+            $current->update($payload);
+            return;
+        }
+
+        // Create a new plan if none exists
         Plan::query()->create([
             'asset_id' => $this->assetId,
             'checklist_id' => $cl->id,
-            'trigger_type' => $newTrigger,
             'status' => 'Scheduled',
             'timezone' => config('app.timezone'),
-            'require_before_activation' => (bool) $cl->require_before_activation,
             'title' => $cl->name,
+            'scheduled_at' => now(),
         ]);
     }
 

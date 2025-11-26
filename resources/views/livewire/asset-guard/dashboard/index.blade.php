@@ -61,5 +61,5 @@
     </div>
 
     {{-- Inspection Batch Performer Modal (kept hidden until opened) --}}
-    @livewire('asset-guard.inspections.batch-performer')
+    @livewire('asset-guard.inspections.performer-unified')
 </div>

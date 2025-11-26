@@ -23,8 +23,6 @@ class ChecklistItemsPanel extends Component
         'pass_condition' => null,
             'min_value' => null,
             'max_value' => null,
-            'frequency_unit' => 'Month',
-            'frequency_value' => 1,
             'checklist_id' => null,
     ];
 
@@ -48,8 +46,6 @@ class ChecklistItemsPanel extends Component
             'itemForm.pass_condition' => ['nullable','array'],
             'itemForm.min_value' => ['nullable','numeric'],
             'itemForm.max_value' => ['nullable','numeric'],
-            'itemForm.frequency_unit' => ['required','in:Day,Week,Month,Year'],
-            'itemForm.frequency_value' => ['required','integer','min:1','max:365'],
             'itemForm.checklist_id' => ['nullable','integer'],
             'referencePhoto' => ['nullable','image','max:5120'],
         ];
@@ -62,8 +58,6 @@ class ChecklistItemsPanel extends Component
             'name' => '',
             'method' => 'text',
             'pass_condition' => null,
-            'frequency_unit' => 'Month',
-            'frequency_value' => 1,
             'checklist_id' => $checklistId ?? $this->checklistId,
         ];
         $this->referencePhoto = null;
@@ -86,8 +80,6 @@ class ChecklistItemsPanel extends Component
             'pass_condition' => $item->pass_condition,
             'min_value' => $item->min_value,
             'max_value' => $item->max_value,
-            'frequency_unit' => $item->frequency_unit,
-            'frequency_value' => $item->frequency_value,
             'checklist_id' => (int) $item->checklist_id,
         ];
         $this->referencePhoto = null;

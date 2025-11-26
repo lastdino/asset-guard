@@ -13,13 +13,13 @@
         @forelse($rows as $row)
             <tr
                 class="border-t cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                wire:click="$dispatch('open-batch-performer', [{{ $row->id }}])"
+                wire:click="$dispatch('open-inspection', [{ mode: 'plan-batch', planId: {{ $row->id }} }])"
             >
                 <td class="py-2">{{ optional($row->asset)->name ?? '-' }}</td>
-                <td class="py-2">{{ optional(optional($row->plan)->checklist)->name ?? '-' }}</td>
-                <td class="py-2">{{ optional($row->planned_at)?->format('Y-m-d') }}</td>
-                <td class="py-2">{{ optional(optional($row->plan)->assignee)->name ?? '-' }}</td>
-                <td class="py-2">{{ isset($row->planned_at) && $row->planned_at < now() ? __('asset-guard::common.overdue') : __('asset-guard::common.upcoming') }}</td>
+                <td class="py-2">{{ optional($row->checklist)->name ?? '-' }}</td>
+                <td class="py-2">{{ optional($row->scheduled_at)?->format('Y-m-d') }}</td>
+                <td class="py-2">{{ optional($row->assignee)->name ?? '-' }}</td>
+                <td class="py-2">{{ isset($row->scheduled_at) && $row->scheduled_at < now() ? __('asset-guard::common.overdue') : __('asset-guard::common.upcoming') }}</td>
             </tr>
         @empty
             <tr>

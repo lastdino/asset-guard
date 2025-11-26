@@ -7,7 +7,7 @@ return [
     'pre_use' => '使用前',
     'start' => '開始',
     'start_inspection' => '点検を開始',
-    'heading_occurrences' => '点検（オカレンス）',
+    'heading' => '点検',
     'planned_for' => '予定日',
     'plan' => '計画',
     'checklist' => 'チェックリスト',

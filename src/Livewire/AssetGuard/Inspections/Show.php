@@ -14,7 +14,7 @@ class Show extends Component
 
     public ?AssetGuardInspection $inspection = null;
 
-    #[On('open-inspection')]
+    #[On('open-inspection-detail')]
     public function open(int $id): void
     {
         $this->inspection = AssetGuardInspection::query()

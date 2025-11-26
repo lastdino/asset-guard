@@ -3,7 +3,7 @@
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Dashboard;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 use Livewire\Component;
 
 class OverdueInspections extends Component
@@ -12,11 +12,11 @@ class OverdueInspections extends Component
 
     public function getRowsProperty(): LengthAwarePaginator
     {
-        return Occurrence::query()
-            ->with(['asset', 'plan', 'plan.checklist', 'plan.assignee'])
-            ->whereNull('completed_at')
-            ->where('planned_at', '<', now()->addDays(7))
-            ->orderBy('planned_at')
+        return Plan::query()
+            ->with(['asset', 'checklist', 'assignee'])
+            ->where('status', 'Scheduled')
+            ->where('scheduled_at', '<', now()->addDays(7))
+            ->orderBy('scheduled_at')
             ->paginate($this->perPage);
     }
 

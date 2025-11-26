@@ -7,7 +7,7 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
-use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenanceOccurrence, AssetGuardInspectionChecklistItem};
+use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenancePlan, AssetGuardInspectionChecklistItem};
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -16,7 +16,7 @@ class Performer extends Component
     use WithFileUploads;
 
     public bool $open = false;
-    public ?int $occurrenceId = null;
+    public ?int $planId = null;
     public ?int $checklistItemId = null;
 
     public ?string $assetLabel = null;
@@ -43,18 +43,18 @@ class Performer extends Component
 
     protected $listeners = ['open-performer' => 'openFor'];
 
-    public function openFor(int $occurrenceId, int $checklistItemId): void
+    public function openFor(int $planId, int $checklistItemId): void
     {
-        $occurrence = AssetGuardMaintenanceOccurrence::query()
-            ->with(['asset', 'plan.checklist'])
-            ->findOrFail($occurrenceId);
+        $plan = AssetGuardMaintenancePlan::query()
+            ->with(['asset', 'checklist'])
+            ->findOrFail($planId);
         $item = AssetGuardInspectionChecklistItem::query()->findOrFail($checklistItemId);
 
         $this->reset(['result','text','note','attachments','number','select','coInspectorIds']);
 
-        $this->occurrenceId = $occurrence->id;
+        $this->planId = $plan->id;
         $this->checklistItemId = $item->id;
-        $this->assetLabel = ($occurrence->asset?->code ?? '') . ' — ' . ($occurrence->asset?->name ?? '');
+        $this->assetLabel = ($plan->asset?->code ?? '') . ' — ' . ($plan->asset?->name ?? '');
         $this->itemName = $item->name;
         $this->method = $item->method;
         $this->minValue = $item->min_value !== null ? (float) $item->min_value : null;
@@ -69,7 +69,7 @@ class Performer extends Component
         $this->medias= $item->getMedia('reference_photos');
 
         // Prefill from existing draft if any
-        $this->hydrateFromDraft($occurrence, $item);
+        $this->hydrateFromDraftPlan($plan, $item);
 
         $this->open = true;
     }
@@ -100,10 +100,10 @@ class Performer extends Component
         ];
     }
 
-    protected function upsertDraftInspection(AssetGuardMaintenanceOccurrence $occurrence, AssetGuardInspectionChecklistItem $item): AssetGuardInspection
+    protected function upsertDraftInspectionFromPlan(AssetGuardMaintenancePlan $plan, AssetGuardInspectionChecklistItem $item): AssetGuardInspection
     {
         $inspection = AssetGuardInspection::query()->firstOrCreate([
-            'asset_id' => $occurrence->asset_id,
+            'asset_id' => $plan->asset_id,
             'checklist_id' => $item->checklist_id,
             'status' => 'Draft',
         ], [
@@ -122,12 +122,12 @@ class Performer extends Component
 
     public function saveDraft(): void
     {
-        if ($this->occurrenceId === null || $this->checklistItemId === null) { return; }
+        if ($this->planId === null || $this->checklistItemId === null) { return; }
         $this->validate();
 
-        $occurrence = AssetGuardMaintenanceOccurrence::query()->findOrFail($this->occurrenceId);
+        $plan = AssetGuardMaintenancePlan::query()->findOrFail($this->planId);
         $item = AssetGuardInspectionChecklistItem::query()->findOrFail($this->checklistItemId);
-        $inspection = $this->upsertDraftInspection($occurrence, $item);
+        $inspection = $this->upsertDraftInspectionFromPlan($plan, $item);
 
         [$result, $value] = $this->buildOutcome();
 
@@ -155,12 +155,12 @@ class Performer extends Component
 
     public function finalize(): void
     {
-        if ($this->occurrenceId === null || $this->checklistItemId === null) { return; }
+        if ($this->planId === null || $this->checklistItemId === null) { return; }
         $this->validate();
 
-        $occurrence = AssetGuardMaintenanceOccurrence::query()->findOrFail($this->occurrenceId);
+        $plan = AssetGuardMaintenancePlan::query()->findOrFail($this->planId);
         $item = AssetGuardInspectionChecklistItem::query()->findOrFail($this->checklistItemId);
-        $inspection = $this->upsertDraftInspection($occurrence, $item);
+        $inspection = $this->upsertDraftInspectionFromPlan($plan, $item);
 
         [$result, $value] = $this->buildOutcome();
 
@@ -185,21 +185,21 @@ class Performer extends Component
 
         $inspection->update(['status' => 'Completed', 'performed_at' => Carbon::now()]);
 
-        // Mark occurrence completed and create next based on item frequency
-        $occurrence->update([
+        // Mark plan completed and roll next schedule based on item or checklist frequency
+        $plan->update([
             'status' => 'Completed',
             'completed_at' => Carbon::now(),
         ]);
 
-        $baseDate = Carbon::parse($occurrence->planned_at);
-        $nextDue = InspectionScheduleCalculator::nextDueDate($item->frequency_unit, (int) $item->frequency_value, $baseDate);
+        $baseDate = Carbon::parse($plan->scheduled_at ?? Carbon::now());
+        $unit = $item->frequency_unit;
+        $value = (int) $item->frequency_value;
+        $nextDue = InspectionScheduleCalculator::nextDueDate($unit, max(1, $value), $baseDate);
         if ($nextDue) {
-            AssetGuardMaintenanceOccurrence::query()->firstOrCreate([
-                'maintenance_plan_id' => $occurrence->maintenance_plan_id,
-                'asset_id' => $occurrence->asset_id,
-                'planned_at' => $nextDue->toDateTimeString(),
-            ], [
+            $plan->update([
+                'scheduled_at' => $nextDue->toDateTimeString(),
                 'status' => 'Scheduled',
+                'due_at' => null,
             ]);
         }
 
@@ -242,11 +242,11 @@ class Performer extends Component
         return [];
     }
 
-    protected function hydrateFromDraft(AssetGuardMaintenanceOccurrence $occurrence, AssetGuardInspectionChecklistItem $item): void
+    protected function hydrateFromDraftPlan(AssetGuardMaintenancePlan $plan, AssetGuardInspectionChecklistItem $item): void
     {
         // Load existing draft for same asset + checklist
         $draft = AssetGuardInspection::query()
-            ->where('asset_id', $occurrence->asset_id)
+            ->where('asset_id', $plan->asset_id)
             ->where('checklist_id', $item->checklist_id)
             ->where('status', 'Draft')
             ->latest('id')

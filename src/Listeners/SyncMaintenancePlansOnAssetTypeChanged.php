@@ -7,13 +7,10 @@ namespace Lastdino\AssetGuard\Listeners;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Lastdino\AssetGuard\Events\AssetTypeChanged;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist as Checklist;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
-use Lastdino\AssetGuard\Services\GenerateMaintenanceOccurrences;
 
 class SyncMaintenancePlansOnAssetTypeChanged implements ShouldQueue
 {
-    public function __construct(public GenerateMaintenanceOccurrences $generator) {}
 
     public function handle(AssetTypeChanged $event): void
     {
@@ -37,11 +34,6 @@ class SyncMaintenancePlansOnAssetTypeChanged implements ShouldQueue
 
         foreach ($plans as $plan) {
             $plan->update(['status' => 'Cancelled']);
-
-            Occurrence::query()
-                ->where('maintenance_plan_id', $plan->id)
-                ->whereIn('status', ['Scheduled', 'Overdue'])
-                ->delete();
         }
     }
 
@@ -68,20 +60,14 @@ class SyncMaintenancePlansOnAssetTypeChanged implements ShouldQueue
                 continue;
             }
 
-            $plan = Plan::query()->create([
+            Plan::query()->create([
                 'asset_id' => $assetId,
                 'checklist_id' => $checklist->id,
                 'title' => $checklist->name,
                 'status' => 'Scheduled',
                 'timezone' => config('app.timezone'),
-                'start_date' => now()->toDateString(),
+                'scheduled_at' => now(),
             ]);
-
-            try {
-                $this->generator->handle($plan);
-            } catch (\Throwable $e) {
-                // optional: log
-            }
         }
     }
 }

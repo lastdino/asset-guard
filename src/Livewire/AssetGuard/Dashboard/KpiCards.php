@@ -6,7 +6,7 @@ use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardIncident;
 use Lastdino\AssetGuard\Models\AssetGuardInspection;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 use Livewire\Component;
 
 class KpiCards extends Component
@@ -65,19 +65,19 @@ class KpiCards extends Component
     {
         [$start, $end] = $this->periodRange();
 
-        $planned = Occurrence::query()
-            ->whereBetween('planned_at', [$start, $end])
+        $planned = Plan::query()
+            ->whereBetween('scheduled_at', [$start, $end])
             ->count();
 
-        $completed = Occurrence::query()
+        $completed = Plan::query()
             ->whereBetween('completed_at', [$start, $end])
             ->count();
 
         $this->complianceRate = $planned > 0 ? round($completed / $planned * 100, 1) : null;
 
-        $this->overdueCount = Occurrence::query()
-            ->where('planned_at', '<', now())
-            ->whereNull('completed_at')
+        $this->overdueCount = Plan::query()
+            ->where('scheduled_at', '<', now())
+            ->where('status', 'Scheduled')
             ->count();
 
         $open = AssetGuardIncident::query()

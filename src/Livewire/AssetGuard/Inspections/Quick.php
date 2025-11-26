@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Livewire\Component;
-use Lastdino\AssetGuard\Models\{AssetGuardAsset, AssetGuardMaintenanceOccurrence, AssetGuardInspectionChecklist};
+use Lastdino\AssetGuard\Models\{AssetGuardAsset, AssetGuardMaintenancePlan, AssetGuardInspectionChecklist};
 
 class Quick extends Component
 {
@@ -80,13 +80,13 @@ class Quick extends Component
 
         $this->foundAssetId = $asset->id;
 
-        // Prefer an existing, not yet completed occurrence (do not create new)
-        $occ = AssetGuardMaintenanceOccurrence::query()
+        // Prefer an existing, not yet completed plan (do not create new)
+        $plan = AssetGuardMaintenancePlan::query()
             ->where('asset_id', $asset->id)
-            ->whereNull('completed_at')
-            ->orderBy('due_at')
+            ->where('status', 'Scheduled')
+            ->orderBy('scheduled_at')
             ->first();
-        $this->pendingOccurrenceId = $occ?->id;
+        $this->pendingOccurrenceId = $plan?->id;
 
         // Resolve usable checklists (pre-use prioritized)
         $cls = AssetGuardInspectionChecklist::query()
@@ -121,8 +121,13 @@ class Quick extends Component
         }
 
         if ($this->pendingOccurrenceId) {
-            // Scheduled inspection via BatchPerformer
-            $this->dispatch('open-batch-performer', occurrenceId: $this->pendingOccurrenceId, inspectorId: $this->inspectorId, coInspectorIds: $this->coInspectorIds);
+            // Scheduled inspection via unified event (batch mode)
+            $this->dispatch('open-inspection', [
+                'mode' => 'plan-batch',
+                'planId' => $this->pendingOccurrenceId,
+                'inspectorId' => $this->inspectorId,
+                'coInspectorIds' => $this->coInspectorIds,
+            ]);
             $this->showStartModal = false;
             return;
         }
@@ -132,8 +137,14 @@ class Quick extends Component
             return;
         }
 
-        // Pre-use or ad-hoc checklist via PreUsePerformer (no occurrence creation)
-        $this->dispatch('open-pre-use-performer', assetId: $this->foundAssetId, checklistId: $this->selectedChecklistId, inspectorId: $this->inspectorId, coInspectorIds: $this->coInspectorIds);
+        // Pre-use or ad-hoc checklist via unified event (no occurrence creation)
+        $this->dispatch('open-inspection', [
+            'mode' => 'preuse',
+            'assetId' => $this->foundAssetId,
+            'checklistId' => $this->selectedChecklistId,
+            'inspectorId' => $this->inspectorId,
+            'coInspectorIds' => $this->coInspectorIds,
+        ]);
         $this->showStartModal = false;
     }
 

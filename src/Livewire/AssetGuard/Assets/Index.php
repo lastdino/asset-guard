@@ -7,13 +7,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardAssetType;
-use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
-use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem;
 use Lastdino\AssetGuard\Models\AssetGuardLocation;
-use Lastdino\AssetGuard\Models\AssetGuardIncident;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
-use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
-use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
 use Livewire\Component;
@@ -88,11 +83,6 @@ class Index extends Component
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $assetImages = [];
 
-    // Pre-use checklist selector modal state
-    public bool $showPreUseSelector = false;
-    public ?int $selectorAssetId = null;
-    /** @var array<int, array{id:int, name:string}> */
-    public array $selectorOptions = [];
 
     protected function rulesForm(): array
     {
@@ -117,20 +107,6 @@ class Index extends Component
         ];
     }
 
-
-
-    protected function rulesIncident(): array
-    {
-        return [
-            'incidentForm.occurred_at' => ['required','date'],
-            'incidentForm.assignee_id' => ['nullable','integer','exists:users,id'],
-            'incidentForm.event' => ['required','string','max:2000'],
-            'incidentForm.actions' => ['nullable','string','max:5000','required_if:incidentForm.status,Completed'],
-            'incidentForm.status' => ['required','in:Waiting,InProgress,Completed'],
-            'incidentFiles' => ['nullable','array','max:10'],
-            'incidentFiles.*' => ['file','max:20480','mimetypes:image/jpeg,image/png,application/pdf,text/plain,application/zip'],
-        ];
-    }
 
     protected function rulesAssetImages(): array
     {
@@ -264,76 +240,6 @@ class Index extends Component
         $this->activeTab = 'details';
     }
 
-    public function startPreUseInspection(int $assetId): void
-    {
-
-        $gate = new PreUseInspectionGate(assetId: $assetId);
-        if (! $gate->isInspectionRequired()) {
-            $this->dispatch('notify', type: 'info', message: __('asset-guard::inspections.pre_use_not_required_today'));
-            if ($this->selectedAssetId === $assetId) {
-                $this->preUseRequired = false;
-            }
-            return;
-        }
-
-        $assetTypeId = \Lastdino\AssetGuard\Models\AssetGuardAsset::query()->whereKey($assetId)->value('asset_type_id');
-
-        $plans = AssetGuardMaintenancePlan::query()
-            ->where('asset_id', $assetId)
-            ->where(function ($q) { $q->where('trigger_type', 'per_use')->orWhereNull('trigger_type'); })
-            ->where('status', 'Scheduled')
-            ->whereHas('checklist', function ($q) use ($assetTypeId) {
-                $q->where('require_before_activation', true)
-                  ->where('active', true)
-                  ->where(function ($q) use ($assetTypeId) {
-                      $q->where(function ($q) use ($assetTypeId) {
-                          $q->where('applies_to', 'asset_type')
-                            ->when($assetTypeId, fn($q) => $q->where('asset_type_id', $assetTypeId));
-                      })->orWhere(function ($q) {
-                          $q->where('applies_to', 'asset');
-                      });
-                  });
-            })
-            ->with('checklist:id,name')
-            ->get();
-
-        if ($plans->isEmpty()) {
-            $this->dispatch('notify', type: 'error', message: __('asset-guard::inspections.no_pre_use_plan'));
-            return;
-        }
-
-        // Exclude checklists already completed today
-        $tz = config('app.timezone');
-        $today = Carbon::now($tz)->toDateString();
-
-        $doneTodayChecklistIds = AssetGuardInspection::query()
-            ->where('asset_id', $assetId)
-            ->whereIn('checklist_id', $plans->pluck('checklist_id'))
-            ->where('status', 'Completed')
-            ->whereDate('performed_at', $today)
-            ->pluck('checklist_id')
-            ->unique()
-            ->all();
-
-        $pendingPlans = $plans->reject(fn($p) => in_array($p->checklist_id, $doneTodayChecklistIds, true))->values();
-
-        if ($pendingPlans->isEmpty()) {
-            $this->dispatch('notify', type: 'info', message: __('asset-guard::inspections.pre_use_not_required_today'));
-            if ($this->selectedAssetId === $assetId) {
-                $this->preUseRequired = false;
-            }
-            return;
-        }
-
-        if ($pendingPlans->count() === 1) {
-            $plan = $pendingPlans->first();
-            $this->dispatch('open-pre-use-performer', assetId: $assetId, checklistId: $plan->checklist_id);
-            return;
-        }
-
-        $options = $pendingPlans->map(fn($p) => ['id' => $p->checklist_id, 'name' => $p->checklist->name])->values();
-        $this->dispatch('open-pre-use-selector', assetId: $assetId, checklists: $options);
-    }
 
     public function switchTab(string $tab): void
     {
@@ -384,11 +290,11 @@ class Index extends Component
             return [];
         }
 
-        return Occurrence::query()
+        return AssetGuardMaintenancePlan::query()
             ->selectRaw('asset_id, COUNT(*) as due_count')
             ->whereIn('asset_id', $assetIds)
-            ->whereDate('planned_at', '<=', Carbon::now())
-            ->whereIn('status', ['Scheduled','Overdue'])
+            ->whereDate('scheduled_at', '<=', Carbon::now())
+            ->where('status', 'Scheduled')
             ->groupBy('asset_id')
             ->pluck('due_count', 'asset_id')
             ->toArray();
@@ -403,13 +309,6 @@ class Index extends Component
         }
     }
 
-    #[On('open-pre-use-selector')]
-    public function onOpenPreUseSelector(int $assetId, array $checklists): void
-    {
-        $this->selectorAssetId = $assetId;
-        $this->selectorOptions = $checklists;
-        $this->showPreUseSelector = true;
-    }
 
     public function getLocationOptionsProperty()
     {
@@ -419,94 +318,6 @@ class Index extends Component
     public function getTypeOptionsProperty()
     {
         return AssetGuardAssetType::query()->orderBy('sort_order')->orderBy('name')->get(['id','name']);
-    }
-
-    public function openIncident(): void
-    {
-        $this->incidentEditingId = null;
-        $this->incidentForm = [
-            'occurred_at' => now()->format('Y-m-d\TH:i'),
-            'assignee_id' => null,
-            'event' => '',
-            'actions' => '',
-            'status' => 'Waiting',
-        ];
-        $this->incidentFiles = [];
-        $this->showIncidentModal = true;
-    }
-
-    public function openIncidentEdit(int $incidentId): void
-    {
-        if (! $this->selectedAssetId) {
-            return;
-        }
-
-        $incident = AssetGuardIncident::query()
-            ->where('asset_id', $this->selectedAssetId)
-            ->findOrFail($incidentId);
-
-        $this->incidentEditingId = (int) $incident->id;
-        $this->incidentForm = [
-            'occurred_at' => optional($incident->occurred_at)->format('Y-m-d\\TH:i'),
-            'assignee_id' => $incident->assignee_id,
-            'event' => $incident->event,
-            'actions' => $incident->actions,
-            'status' => $incident->status,
-        ];
-        $this->incidentFiles = [];
-        $this->showIncidentModal = true;
-    }
-
-    public function saveIncident(): void
-    {
-        if (! $this->selectedAssetId) {
-            return;
-        }
-        $validated = $this->validate($this->rulesIncident());
-        $data = $validated['incidentForm'];
-
-        if ($this->incidentEditingId) {
-            // Update existing incident
-            $incident = AssetGuardIncident::query()
-                ->where('asset_id', $this->selectedAssetId)
-                ->findOrFail($this->incidentEditingId);
-
-            // completed_at handling: set when moving to Completed (if not already), clear otherwise
-            $completedAt = $data['status'] === 'Completed'
-                ? ($incident->completed_at ?? now())
-                : null;
-
-            $incident->update([
-                ...$data,
-                'completed_at' => $completedAt,
-            ]);
-        } else {
-            // Create new incident
-            $payload = [
-                ...$data,
-                'asset_id' => $this->selectedAssetId,
-                'completed_at' => $data['status'] === 'Completed' ? now() : null,
-            ];
-
-            $incident = AssetGuardIncident::query()->create($payload);
-        }
-
-        // Attach newly uploaded files (additive)
-        foreach ($this->incidentFiles as $file) {
-            try {
-                $incident
-                    ->addMedia($file->getRealPath())
-                    ->usingFileName($file->getClientOriginalName())
-                    ->toMediaCollection('attachments');
-            } catch (\Throwable $e) {
-                // Ignore errors if media library is not installed
-            }
-        }
-
-        $this->loadSelectedAsset(true);
-        $this->showIncidentModal = false;
-        $this->incidentEditingId = null;
-        $this->dispatch('saved');
     }
 
     public function uploadAssetImages(): void

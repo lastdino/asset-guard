@@ -107,31 +107,19 @@ return new class extends Migration {
             $table->foreignId('asset_id')->constrained('asset_guard_assets')->cascadeOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('trigger_type', 32)->default('time'); // time|usage
-            $table->boolean('require_before_activation')->default(false);
-            $table->date('start_date')->nullable();
-            $table->date('end_date')->nullable();
+            $table->timestamp('scheduled_at');
+            $table->timestamp('due_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->string('timezone')->default(config('app.timezone'));
             $table->unsignedTinyInteger('lead_time_days')->default(3);
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status')->default('Scheduled');
             $table->foreignId('checklist_id')->nullable()->constrained('asset_guard_inspection_checklists')->nullOnDelete();
+            $table->string('trigger_type', 20)->nullable();
+            $table->boolean('require_before_activation')->default(false);
             $table->timestamps();
         });
 
-        // 9) Maintenance occurrences
-        Schema::create('asset_guard_maintenance_occurrences', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('maintenance_plan_id')->constrained('asset_guard_maintenance_plans')->cascadeOnDelete();
-            $table->foreignId('asset_id')->constrained('asset_guard_assets')->cascadeOnDelete();
-            $table->dateTime('planned_at');
-            $table->dateTime('due_at')->nullable();
-            $table->dateTime('completed_at')->nullable();
-            $table->string('status')->default('Planned');
-            $table->text('notes')->nullable();
-            $table->timestamps();
-            $table->index(['asset_id', 'planned_at']);
-        });
 
         // 10) Incidents
         Schema::create('asset_guard_incidents', function (Blueprint $table): void {

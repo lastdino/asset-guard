@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'heading_occurrences' => 'Inspections (Occurrences)',
+    'heading' => 'Inspections',
     'planned_for' => 'Planned for',
     'plan' => 'Plan',
     'checklist' => 'Checklist',
@@ -10,7 +10,7 @@ return [
     'perform_batch' => 'Batch perform',
     'no_due_items' => 'No due items as of today.',
     'due_date' => 'Due',
-    'empty_occurrences' => 'There are no pending inspection occurrences.',
+    'empty_occurrences' => 'There are no pending inspection plans.',
 
     'perform_modal_title' => 'Perform Inspection',
     'target' => 'Target',

@@ -53,7 +53,7 @@
                         @endif
                         <div>
                             <div class="font-medium">{{ $asset->code }} — {{ $asset->manufacturer }} — {{ $asset->name }}</div>
-                            <div class="text-sm text-zinc-500">{{ optional($asset->location)->name }} / {{ $asset->serial_no }} / {{ $asset->fixed_asset_no }} / {{ $asset->assetType->name }}</div>
+                            <div class="text-sm text-zinc-500">{{ optional($asset->location)->name }} / {{ $asset->serial_no }} / {{ $asset->fixed_asset_no }} / {{ optional($asset->assetType)->name ?? '-' }}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -76,7 +76,7 @@
                         @endif
 
                         @if(data_get($this->preUseRequiredForList, $asset->id, false))
-                            <flux:button size="xs" variant="primary" wire:click="startPreUseInspection({{ $asset->id }})">
+                            <flux:button size="xs" variant="primary" wire:click="$dispatch('open-inspection', [{ mode: 'preuse', assetId: {{$asset->id}} }])" >
                                 {{ __('asset-guard::inspections.start_pre_use') }}
                             </flux:button>
                         @endif
@@ -221,11 +221,11 @@
                 <div class="flex items-center gap-2">
                     <flux:button size="xs" variant="ghost" wire:click="openEdit({{ $selectedAsset->id }})">{{ __('asset-guard::assets.edit') ?? '編集' }}</flux:button>
 
-                    @if($this->preUseRequired)
+                    @if(data_get($this->preUseRequiredForList, $selectedAsset->id, false))
                         <flux:button
                             size="xs"
                             variant="primary"
-                            wire:click="startPreUseInspection({{ $selectedAsset->id }})"
+                            wire:click="$dispatch('open-inspection', [{ mode: 'preuse', assetId: {{$selectedAsset->id}} }])"
                             wire:loading.attr="disabled"
                         >
                             <span wire:loading.remove>{{ __('asset-guard::inspections.start_pre_use') }}</span>
@@ -301,7 +301,7 @@
                             {{ __('asset-guard::assets.filters.status.' . $selectedAsset->status) ?? $selectedAsset->status }}
                         </flux:badge>
                     </div>
-                    <div><span class="text-zinc-500">種別:</span> {{ $selectedAsset->assetType->name }}</div>
+                    <div><span class="text-zinc-500">種別:</span> {{ optional($selectedAsset->assetType)->name ?? '-' }}</div>
                     @if($selectedAsset->serial_no)
                         <div><span class="text-zinc-500">シリアル:</span> {{ $selectedAsset->serial_no }}</div>
                     @endif
@@ -330,6 +330,7 @@
             @if($activeTab === 'inspections')
                 <div class="mt-4">
                     <livewire:asset-guard.inspections.index :assetId="$selectedAssetId" />
+
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\ChecklistHistoryPanel', ['assetId' => $selectedAssetId])
                     @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Inspections\\Show')
                 </div>
@@ -360,26 +361,6 @@
             @endif
         @endif
     </flux:modal>
-
-        <!-- Pre-use checklist selector modal (multiple plans) -->
-        <flux:modal wire:model="showPreUseSelector">
-            <flux:heading size="md">{{ __('asset-guard::inspections.select_pre_use_checklist') }}</flux:heading>
-            <div class="mt-3 grid gap-2">
-                @foreach ($selectorOptions as $opt)
-                    <flux:button
-                        variant="subtle"
-                        wire:click="$dispatch('open-pre-use-performer', { assetId: {{ $selectorAssetId ?? 'null' }}, checklistId: {{ (int) $opt['id'] }} }); $set('showPreUseSelector', false)"
-                    >
-                        {{ $opt['name'] }}
-                    </flux:button>
-                @endforeach
-            </div>
-            <div class="mt-4 flex justify-end">
-                <flux:button variant="ghost" wire:click="$set('showPreUseSelector', false)">{{ __('asset-guard::common.cancel') }}</flux:button>
-            </div>
-        </flux:modal>
-
-        @livewire('asset-guard.inspections.pre-use-performer')
-
+    @livewire('asset-guard.inspections.performer-unified')
     </div>
 

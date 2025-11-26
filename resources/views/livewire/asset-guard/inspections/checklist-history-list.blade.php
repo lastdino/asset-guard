@@ -14,7 +14,7 @@
                     </div>
                 </div>
                 <div class="shrink-0">
-                    <flux:button variant="subtle" wire:click="$dispatch('open-inspection', { id: {{ $inspection->id }} })">詳細</flux:button>
+                    <flux:button variant="subtle" wire:click="$dispatch('open-inspection-detail', { id: {{ $inspection->id }} })">詳細</flux:button>
                 </div>
             </div>
         @empty

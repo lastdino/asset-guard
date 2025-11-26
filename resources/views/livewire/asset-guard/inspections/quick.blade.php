@@ -62,8 +62,7 @@
         </div>
     @endif
 
-    @livewire(\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\BatchPerformer::class)
-    @livewire(\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PreUsePerformer::class)
+    @livewire(\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PerformerUnified::class)
 
     <flux:modal wire:model="showStartModal">
         <flux:heading size="md">{{ __('asset-guard::inspections.start_inspection') }}</flux:heading>

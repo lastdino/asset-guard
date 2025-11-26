@@ -28,18 +28,15 @@ class SyncPreUsePlanForAsset
             ->all();
 
         DB::transaction(function () use ($asset, $eligibleChecklistIds): void {
-            // Fetch existing scheduled per-use plans for this asset
+            // Fetch existing scheduled plans for this asset for these checklists
             $existing = Plan::query()
                 ->where('asset_id', $asset->id)
-                ->where(function ($q) {
-                    $q->where('trigger_type', 'per_use')->orWhereNull('trigger_type');
-                })
                 ->where('status', 'Scheduled')
                 ->get(['id', 'checklist_id']);
 
             $existingByChecklist = $existing->keyBy('checklist_id');
 
-            // Archive plans that are no longer eligible
+            // Archive plans that are no longer eligible (for per-use, we don't keep plans)
             if ($existing->isNotEmpty()) {
                 Plan::query()
                     ->whereIn('id', $existing->pluck('id'))
@@ -47,33 +44,13 @@ class SyncPreUsePlanForAsset
                         $q->whereNotIn('checklist_id', $eligibleChecklistIds);
                     }, function ($q) {
                         // If no eligible checklists remain, archive all existing
-                        // Keep the whereIn('id', ...) from above
                         return $q; // no-op; condition retained
                     })
                     ->update(['status' => 'Archived']);
             }
 
-            // Create plans for eligible checklists that are missing
-            foreach ($eligibleChecklistIds as $checklistId) {
-                if ($existingByChecklist->has($checklistId)) {
-                    continue;
-                }
-
-                $cl = Checklist::query()->find($checklistId);
-                if (! $cl) {
-                    continue;
-                }
-
-                Plan::query()->create([
-                    'asset_id' => $asset->id,
-                    'checklist_id' => $cl->id,
-                    'title' => $cl->name,
-                    'trigger_type' => 'per_use',
-                    'require_before_activation' => true,
-                    'status' => 'Scheduled',
-                    'timezone' => config('app.timezone'),
-                ]);
-            }
+            // Do not create new plans for per-use checklists
+            // This service now only archives inappropriate plans.
         });
     }
 }

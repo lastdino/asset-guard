@@ -41,4 +41,9 @@ class AssetGuardInspectionChecklist extends Model
     {
         return $this->hasMany(AssetGuardInspectionChecklistItem::class, 'checklist_id');
     }
+
+    public function plans(): HasMany
+    {
+        return $this->hasMany(AssetGuardMaintenancePlan::class, 'checklist_id');
+    }
 }
