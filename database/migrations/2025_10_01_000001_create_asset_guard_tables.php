@@ -149,7 +149,6 @@ return new class extends Migration {
         Schema::dropIfExists('asset_guard_inspections');
         Schema::dropIfExists('asset_guard_inspection_checklist_items');
         Schema::dropIfExists('asset_guard_inspection_checklists');
-        Schema::dropIfExists('asset_guard_maintenance_occurrences');
         Schema::dropIfExists('asset_guard_maintenance_plans');
         Schema::dropIfExists('asset_guard_incidents');
         Schema::dropIfExists('asset_guard_assets');

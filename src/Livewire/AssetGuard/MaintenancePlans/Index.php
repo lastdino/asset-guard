@@ -66,6 +66,14 @@ class Index extends Component
 
     public function loadCalendar($info)
     {
+        // カレンダーからの初回ロード情報がない場合に備えてデフォルト範囲を設定
+        if (empty($info) || ! is_array($info) || ! isset($info['start'], $info['end'])) {
+            $info = [
+                'start' => Carbon::now()->subMonth()->startOfDay(),
+                'end' => Carbon::now()->addMonths(3)->endOfDay(),
+            ];
+        }
+
         $this->infos = $info;
         $query = AssetGuardMaintenancePlan::query()->with([ 'asset'])
             ->whereBetween('scheduled_at', [$info['start'], $info['end']])
@@ -104,16 +112,24 @@ class Index extends Component
 
     public function getListsProperty()
     {
+        // 優先的にフォーム上の asset_id を使用し、未設定なら画面フィルタの assetId を使用
+        $targetAssetId = $this->form['asset_id'] ?? $this->assetId;
+
         return AssetGuardInspectionChecklist::query()
             ->where('active', true)
-            ->where(function ($query)  {
-                $query->when($this->assetId, function ($q) {
-                    $q->where('asset_id', $this->assetId)
-                        ->orWhereExists(function ($subquery) {
+            // 使用前点検は保全計画のチェックリスト選択には表示しない
+            ->where(function ($q) {
+                $q->whereNull('require_before_activation')
+                  ->orWhere('require_before_activation', false);
+            })
+            ->where(function ($query) use ($targetAssetId)  {
+                $query->when($targetAssetId, function ($q) use ($targetAssetId) {
+                    $q->where('asset_id', $targetAssetId)
+                        ->orWhereExists(function ($subquery) use ($targetAssetId) {
                             $subquery->select('id')
                                 ->from('asset_guard_assets')
                                 ->whereColumn('asset_guard_inspection_checklists.asset_type_id', 'asset_guard_assets.asset_type_id')
-                                ->where('asset_guard_assets.id', $this->assetId)
+                                ->where('asset_guard_assets.id', $targetAssetId)
                                 ->where('asset_guard_inspection_checklists.applies_to', 'asset_type');
                         });
                 });

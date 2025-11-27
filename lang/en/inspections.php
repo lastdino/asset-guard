@@ -11,6 +11,8 @@ return [
     'no_due_items' => 'No due items as of today.',
     'due_date' => 'Due',
     'empty_occurrences' => 'There are no pending inspection plans.',
+    'scheduled_on' => 'Scheduled: :date',
+    'overdue' => 'Overdue',
 
     'perform_modal_title' => 'Perform Inspection',
     'target' => 'Target',

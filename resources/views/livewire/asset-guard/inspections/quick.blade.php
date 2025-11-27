@@ -77,9 +77,20 @@
 
                 @if (!empty($availableChecklists))
                     <flux:field :label="__('asset-guard::inspections.select_checklist')">
-                        <flux:select wire:model.live="selectedChecklistId">
+                        <flux:select wire:model.live.number="selectedChecklistId">
                             @foreach ($availableChecklists as $cl)
-                                <option value="{{ $cl['id'] }}">{{ $cl['name'] }} @if($cl['pre_use']) ({{ __('asset-guard::inspections.pre_use') }}) @endif</option>
+                                <flux:select.option value="{{ $cl['id'] }}">
+                                    {{ $cl['name'] }}
+                                    @if($cl['pre_use'])
+                                        ({{ __('asset-guard::inspections.pre_use') }})
+                                    @else
+                                        @if(!empty($cl['scheduled_date']))
+                                            - {{ __('asset-guard::inspections.scheduled_on', ['date' => $cl['scheduled_date']]) }}
+                                        @elseif(!empty($cl['overdue']))
+                                            - {{ __('asset-guard::inspections.overdue') }}
+                                        @endif
+                                    @endif
+                                </flux:select.option>
                             @endforeach
                         </flux:select>
                     </flux:field>

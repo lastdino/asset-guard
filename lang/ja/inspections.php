@@ -17,6 +17,8 @@ return [
     'no_due_items' => '本日時点で実施対象の項目はありません。',
     'due_date' => '期日',
     'empty_occurrences' => '未実施の点検予定はありません。',
+    'scheduled_on' => '予定日: :date',
+    'overdue' => '期限超過',
 
     'perform_modal_title' => '点検の実施',
     'target' => '対象',

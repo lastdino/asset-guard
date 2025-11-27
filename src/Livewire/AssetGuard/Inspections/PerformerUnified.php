@@ -99,7 +99,11 @@ class PerformerUnified extends Component
         if ($this->mode === 'plan-batch') {
 
             $this->planId = (int) ($payload['planId'] ?? 0);
-            $this->assetId = null; $this->checklistId = null;
+            $plan = AssetGuardMaintenancePlan::query()->find($this->planId);
+            $this->assetId = $plan ? (int) $plan->asset_id : null;
+            $this->checklistId = $plan ? (int) $plan->checklist_id : null;
+
+
             $this->forms = $this->drafts->buildFormsForPlan((int) $this->planId, $this->options, $this->assetId, $this->checklistId);
 
             $ins = $this->inspectorId; $co = $this->coInspectorIds;
@@ -208,11 +212,11 @@ class PerformerUnified extends Component
 
     public function finalizeAll(): void
     {
+
         if (!$this->assetId || !$this->checklistId) { return; }
         $this->validate();
 
         $inspection = $this->drafts->upsertDraft((int) $this->assetId, (int) $this->checklistId, (int) $this->inspectorId, $this->coInspectorIds);
-
         foreach ($this->forms as $itemId => $form) {
             [$result, $value] = $this->outcomes->fromArray($form);
             AssetGuardInspectionItemResult::query()->updateOrCreate([
