@@ -221,9 +221,44 @@ class Quick extends Component
         }
 
         if($mode === 'plan-batch'){
+            // ユーザーが選択したチェックリストに紐づく「予定（未実施）」を解決して実施する
+            // 優先順: 直近の未来予定 -> 直近の期限超過（過去）予定
+            $selectedChecklistId = (int) $this->selectedChecklistId;
+            $assetId = (int) $this->foundAssetId;
+
+            $now = now();
+
+            $future = AssetGuardMaintenancePlan::query()
+                ->where('asset_id', $assetId)
+                ->where('status', 'Scheduled')
+                ->where('checklist_id', $selectedChecklistId)
+                ->where('scheduled_at', '>=', $now)
+                ->orderBy('scheduled_at')
+                ->first();
+
+            $planId = $future?->id;
+
+            if ($planId === null) {
+                $pastDue = AssetGuardMaintenancePlan::query()
+                    ->where('asset_id', $assetId)
+                    ->where('status', 'Scheduled')
+                    ->where('checklist_id', $selectedChecklistId)
+                    ->where('scheduled_at', '<', $now)
+                    ->orderByDesc('scheduled_at')
+                    ->first();
+
+                $planId = $pastDue?->id;
+            }
+
+            if ($planId === null) {
+                // 対象チェックリストに紐づく予定が存在しないため開始できない
+                $this->message = __('asset-guard::quick_inspection.no_plan');
+                return;
+            }
+
             $this->dispatch('open-inspection', [
                 'mode' => 'plan-batch',
-                'planId' => $this->pendingOccurrenceId,
+                'planId' => $planId,
                 'inspectorId' => $this->inspectorId,
                 'coInspectorIds' => $this->coInspectorIds,
             ]);
