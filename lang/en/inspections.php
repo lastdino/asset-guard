@@ -1,6 +1,11 @@
 <?php
 
 return [
+    // General
+    'perform' => 'Perform',
+    'mode' => 'Mode',
+    'scheduled' => 'Scheduled',
+    'pre_use' => 'Pre-use',
     'heading' => 'Inspections',
     'planned_for' => 'Planned for',
     'plan' => 'Plan',
@@ -20,9 +25,13 @@ return [
     'co_inspectors' => 'Co-inspectors (optional, multiple)',
     'pass' => 'Pass',
     'fail' => 'Fail',
+    'number' => 'Number',
+    'text' => 'Text',
+    'select' => 'Select',
     'measured_value' => 'Measured value',
     'tolerance' => 'Tolerance',
     'result' => 'Result',
+    'note' => 'Note',
         'result_note' => 'Result note',
     'select_placeholder' => 'Please select...',
     'note_placeholder' => 'Note (optional)',

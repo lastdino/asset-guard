@@ -8,10 +8,12 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public int $perPage = 10;
     public string $search = '';
@@ -35,6 +37,9 @@ class Index extends Component
         'status' => 'Waiting',
         'severity' => 'Low',
     ];
+
+    /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
+    public array $files = [];
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingStatus(): void { $this->resetPage(); }
@@ -100,6 +105,7 @@ class Index extends Component
             'status' => (string) $incident->status,
             'severity' => (string) $incident->severity,
         ];
+        $this->files = [];
         $this->showEditModal = true;
     }
 
@@ -126,7 +132,48 @@ class Index extends Component
             'severity' => $validated['severity'],
         ])->save();
 
+        // Validate and save attachments if provided
+        if (!empty($this->files)) {
+            validator(['files' => $this->files], [
+                'files' => ['array', 'max:10'],
+                'files.*' => ['file', 'max:20480', 'mimetypes:image/jpeg,image/png,application/pdf,text/plain,application/zip'],
+            ])->validate();
+
+            foreach ($this->files as $file) {
+                try {
+                    $incident->addMedia($file->getRealPath())
+                        ->usingFileName($file->getClientOriginalName())
+                        ->toMediaCollection('attachments');
+                } catch (\Throwable $e) {
+                    // Media library might be unavailable in some deployments; ignore gracefully
+                }
+            }
+
+            $this->files = [];
+        }
+
         $this->showEditModal = false;
+    }
+
+    public function deleteAttachment(int $mediaId): void
+    {
+        try {
+            $media = Media::query()->findOrFail($mediaId);
+            $model = $media->model;
+
+            if (! ($model instanceof Incident)) {
+                return;
+            }
+
+            if ($this->selectedId === null || $model->id !== $this->selectedId) {
+                return;
+            }
+
+            $media->delete();
+            $this->dispatch('incident-attachment-deleted');
+        } catch (\Throwable $e) {
+            // ignore
+        }
     }
 
     public function render()

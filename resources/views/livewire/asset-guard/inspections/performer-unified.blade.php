@@ -62,6 +62,13 @@
                             <div class="rounded bg-neutral-50 dark:bg-neutral-900 p-3">
                                 <div class="font-medium">{{ $form['name'] ?? '#' . $itemId }}</div>
                                 <div class="mt-2 grid md:grid-cols-2 gap-3">
+                                    @if (!empty($form['media']))
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach ($form['media'] as $m)
+                                                <img src="{{$this->temporaryURL($m['id'])}}" alt="photo" class="h-28 w-full rounded object-cover border dark:border-zinc-700" />
+                                            @endforeach
+                                        </div>
+                                    @endif
                                     @if (($form['method'] ?? null) === 'boolean')
                                         <flux:select :label="__('asset-guard::inspections.result')" wire:model.live="forms.{{ $itemId }}.result">
                                             <option value="Pass">{{ __('asset-guard::inspections.pass') }}</option>
@@ -80,18 +87,27 @@
                                             @endforeach
                                         </flux:select>
                                     @endif
+
+                                </div>
+                                <div class="mt-2">
                                     <flux:textarea :label="__('asset-guard::inspections.note')" wire:model.live="forms.{{ $itemId }}.note" />
                                 </div>
 
-                                @if (!empty($form['media']))
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        @foreach ($form['media'] as $m)
-                                            <a href="{{ route(config('asset-guard.routes.prefix').'.media.show', ['media' => $m['id']]) }}" target="_blank" class="text-xs text-blue-600 hover:underline">
-                                                {{ $m['file_name'] }}
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                @endif
+
+                                <div class="mt-2 grid md:grid-cols-2 gap-3">
+                                    <flux:input
+                                        type="file"
+                                        multiple
+                                        accept="image/*,application/pdf"
+                                        wire:model="attachments.{{ $itemId }}"
+                                        :label="__('asset-guard::inspections.attachments_label')"
+                                    />
+                                    @error('attachments.'.$itemId.'.*')
+                                    <div class="text-sm text-red-600">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+
                             </div>
                         @endforeach
                     </div>

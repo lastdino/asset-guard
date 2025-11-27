@@ -1,6 +1,10 @@
 <?php
 
 return [
+    // General
+    'perform' => '実施',
+    'mode' => 'モード',
+    'scheduled' => '予定',
     'scheduled_exists' => '予定されている点検があります',
     'scheduled_hint' => '既存の予定に対して実施するか、別のチェックリストを選択してください。',
     'select_checklist' => 'チェックリストを選択',
@@ -26,9 +30,13 @@ return [
     'co_inspectors' => '共同点検者（任意・複数）',
     'pass' => '合格',
     'fail' => '不合格',
+    'number' => '数値',
+    'text' => 'テキスト',
+    'select' => '選択',
     'measured_value' => '実測値',
     'tolerance' => '許容範囲',
     'result' => '結果',
+    'note' => '備考',
         'result_note' => '結果のメモ',
     'select_placeholder' => '選択してください...',
     'note_placeholder' => '備考（任意）',

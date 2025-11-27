@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenancePlan, AssetGuardInspectionChecklistItem, AssetGuardInspectionChecklist, AssetGuardAsset};
 use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
@@ -12,9 +13,11 @@ use Lastdino\AssetGuard\Services\Inspections\{ChecklistOptionsService, Inspectio
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
+use Livewire\WithFileUploads;
 
 class PerformerUnified extends Component
 {
+    use WithFileUploads;
     public bool $open = false;
 
     public string $mode = '';
@@ -29,6 +32,12 @@ class PerformerUnified extends Component
 
     /** @var array<int, array<string, mixed>> itemId => form */
     public array $forms = [];
+
+    /**
+     * 項目ごとの添付ファイル一時保持
+     * @var array<int, array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile>> itemId => files[]
+     */
+    public array $attachments = [];
 
     // Pre-use selection state
     /** @var array<int, array{id:int,name:string,pre_use:bool}> */
@@ -182,6 +191,10 @@ class PerformerUnified extends Component
                 $rules["$path.select"] = ['required', Rule::in($form['options'] ?? [])];
             }
             $rules["$path.note"] = ['nullable','string','max:2000'];
+
+            // 項目ごとの添付ファイル検証
+            $rules["attachments.$itemId"] = ['array','max:10'];
+            $rules["attachments.$itemId.*"] = ['nullable','file','max:20480','mimetypes:image/jpeg,image/png,image/webp,application/pdf'];
         }
 
         return $rules;
@@ -196,7 +209,7 @@ class PerformerUnified extends Component
 
         foreach ($this->forms as $itemId => $form) {
             [$result, $value] = $this->outcomes->fromArray($form);
-            AssetGuardInspectionItemResult::query()->updateOrCreate([
+            $record = AssetGuardInspectionItemResult::query()->updateOrCreate([
                 'inspection_id' => $inspection->id,
                 'checklist_item_id' => $itemId,
             ], [
@@ -205,6 +218,17 @@ class PerformerUnified extends Component
                 'note' => $form['note'] ?? null,
                 'is_draft' => true,
             ]);
+
+            // 添付（ドラフトでも保存しておく）
+            $files = $this->attachments[$itemId] ?? [];
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (!$file) { continue; }
+                    $record->addMedia($file)
+                        ->usingFileName($file->getClientOriginalName())
+                        ->toMediaCollection('attachments');
+                }
+            }
         }
 
         $this->dispatch('saved-draft');
@@ -219,7 +243,7 @@ class PerformerUnified extends Component
         $inspection = $this->drafts->upsertDraft((int) $this->assetId, (int) $this->checklistId, (int) $this->inspectorId, $this->coInspectorIds);
         foreach ($this->forms as $itemId => $form) {
             [$result, $value] = $this->outcomes->fromArray($form);
-            AssetGuardInspectionItemResult::query()->updateOrCreate([
+            $record = AssetGuardInspectionItemResult::query()->updateOrCreate([
                 'inspection_id' => $inspection->id,
                 'checklist_item_id' => $itemId,
             ], [
@@ -228,6 +252,17 @@ class PerformerUnified extends Component
                 'note' => $form['note'] ?? null,
                 'is_draft' => false,
             ]);
+
+            // 添付ファイル保存（項目ごと）
+            $files = $this->attachments[$itemId] ?? [];
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (!$file) { continue; }
+                    $record->addMedia($file)
+                        ->usingFileName($file->getClientOriginalName())
+                        ->toMediaCollection('attachments');
+                }
+            }
         }
 
         $inspection->update(['status' => 'Completed', 'performed_at' => Carbon::now()]);
@@ -331,6 +366,15 @@ class PerformerUnified extends Component
         $this->drafts->hydrateDraftBatch((int) $this->assetId, (int) $this->checklistId, $this->forms, $ins, $co);
         $this->inspectorId = $ins; $this->coInspectorIds = $co ?? [];
         $this->selectingPreuse = false;
+    }
+
+    public function temporaryURL($id){
+        $url = URL::temporarySignedRoute(
+            config('asset-guard.routes.prefix').'.media.show.signed',
+            now()->addMinutes(240), // 240分間有効
+            ['media' => $id]
+        );
+        return $url;
     }
 
     public function render()

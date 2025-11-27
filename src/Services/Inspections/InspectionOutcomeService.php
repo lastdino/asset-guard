@@ -24,6 +24,7 @@ final class InspectionOutcomeService
     {
         $method = $payload['method'] ?? null;
 
+        // Number: evaluate pass/fail against optional min/max and store numeric as string
         if ($method === 'number') {
             $raw = $payload['number'] ?? null;
             $value = ($raw === '' || $raw === null) ? null : (float) $raw;
@@ -40,8 +41,13 @@ final class InspectionOutcomeService
             return [$pass ? 'Pass' : 'Fail', (string) $value];
         }
 
+        // Boolean: store value as same as result (Pass/Fail)
+        if ($method === 'boolean') {
+            $result = ($payload['result'] ?? 'Pass') ?: 'Pass';
+            return [$result, $result];
+        }
+
         return match ($method) {
-            'boolean' => [($payload['result'] ?? 'Pass') ?: 'Pass', null],
             'text'    => ['Pass', $payload['text'] ?? null],
             'select'  => ['Pass', $payload['select'] ?? null],
             default   => ['Pass', null],

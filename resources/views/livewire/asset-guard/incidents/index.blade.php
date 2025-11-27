@@ -159,6 +159,30 @@
                 <option value="High">{{ __('asset-guard::incidents.severity.high') }}</option>
                 <option value="Critical">{{ __('asset-guard::incidents.severity.critical') }}</option>
             </flux:select>
+            <flux:input type="file" :label="__('asset-guard::inspections.attachments_label')" wire:model="files" multiple />
+
+            @if($selectedId)
+                @php($x = \Lastdino\AssetGuard\Models\AssetGuardIncident::with(['media'])->find($selectedId))
+                @if($x)
+                    @php($attachments = $x->getMedia('attachments'))
+                    @if($attachments->isNotEmpty())
+                        <div>
+                            <div class="text-xs text-zinc-500">{{ __('asset-guard::inspections.attachments') }}:</div>
+                            <ul class="mt-1 flex flex-wrap gap-2">
+                                @foreach($attachments as $media)
+                                    @php($url = URL::temporarySignedRoute(config('asset-guard.routes.prefix').'.incidents.download', now()->addMinutes(10), ['media' => $media->id]))
+                                    <li class="flex items-center gap-2">
+                                        <a href="{{ $url }}" class="text-sm text-blue-600 hover:underline">
+                                            {{ $media->file_name }} ({{ number_format($media->size / 1024, 1) }} KB)
+                                        </a>
+                                        <flux:button size="xs" variant="danger" wire:click="deleteAttachment({{ $media->id }})">{{ __('asset-guard::common.delete') }}</flux:button>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                @endif
+            @endif
         </div>
         <div class="mt-4 flex justify-end gap-2">
             <flux:button variant="ghost" wire:click="$set('showEditModal', false)">{{ __('asset-guard::common.cancel') }}</flux:button>
