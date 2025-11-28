@@ -141,8 +141,21 @@ class Index extends Component
     public function openShow(int $listId): void
     {
         $this->viewingListId = $listId;
+        $assetId = $this->assetId;
+
         $this->viewingList = AssetGuardInspectionChecklist::query()
-            ->with('asset')
+            ->with([
+                'asset',
+                // Showモーダルの「今後の予定」を設備フィルタに合わせて絞り込む
+                'plans' => function ($q) use ($assetId) {
+                    $q
+                        ->when($assetId, function ($q2) use ($assetId) {
+                            $q2->where('asset_id', $assetId);
+                        })
+                        ->whereNotIn('status', ['Completed', 'Cancelled', 'Archived'])
+                        ->orderBy('scheduled_at');
+                },
+            ])
             ->findOrFail($listId);
 
 

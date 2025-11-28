@@ -153,6 +153,17 @@ class Quick extends Component
             ->reject(function ($c) use ($donePreUseIds) {
                 return (bool) ($c->require_before_activation ?? false) && $donePreUseIds->contains($c->id);
             })
+            // 教示対象の条件: 使用前点検以外は「プランがあること」（未来の予定 or 期限超過の過去予定）
+            ->filter(function ($cl) use ($nearestByChecklist, $pastDueChecklistIds) {
+                $isPreUse = (bool) ($cl->require_before_activation ?? false);
+                if ($isPreUse) {
+                    return true; // 使用前点検は常に候補
+                }
+                $cid = (int) $cl->id;
+                $hasFuture = isset($nearestByChecklist[$cid]);
+                $hasPastDue = in_array($cid, $pastDueChecklistIds, true);
+                return $hasFuture || $hasPastDue; // どちらにも該当しない＝プラン無し→除外
+            })
             ->map(function ($cl) use ($nearestByChecklist, $pastDueChecklistIds) {
                 $isPreUse = (bool) $cl->require_before_activation;
                 $scheduledDate = null;
