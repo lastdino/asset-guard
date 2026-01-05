@@ -109,8 +109,12 @@ class PerformerUnified extends Component
 
             $this->planId = (int) ($payload['planId'] ?? 0);
             $plan = AssetGuardMaintenancePlan::query()->find($this->planId);
-            $this->assetId = $plan ? (int) $plan->asset_id : null;
-            $this->checklistId = $plan ? (int) $plan->checklist_id : null;
+            if (! $plan) {
+                $this->open = false;
+                return;
+            }
+            $this->assetId = (int) $plan->asset_id;
+            $this->checklistId = (int) $plan->checklist_id;
 
 
             $this->forms = $this->drafts->buildFormsForPlan((int) $this->planId, $this->options, $this->assetId, $this->checklistId);
@@ -129,8 +133,13 @@ class PerformerUnified extends Component
             $this->planId = (int) ($payload['planId'] ?? 0);
             $checklistItemId = (int) ($payload['checklistItemId'] ?? 0);
 
-            $plan = AssetGuardMaintenancePlan::query()->with(['asset'])->findOrFail($this->planId);
-            $item = AssetGuardInspectionChecklistItem::query()->findOrFail($checklistItemId);
+            $plan = AssetGuardMaintenancePlan::query()->with(['asset'])->find($this->planId);
+            $item = AssetGuardInspectionChecklistItem::query()->find($checklistItemId);
+
+            if (! $plan || ! $item) {
+                $this->open = false;
+                return;
+            }
 
             $this->assetId = (int) $plan->asset_id;
             $this->checklistId = (int) $item->checklist_id;

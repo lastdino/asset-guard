@@ -69,8 +69,14 @@ Route::middleware(config('asset-guard.routes.middleware'))
         })->middleware(['auth', 'signed'])->name('inspections.results.download');
 
         Route::get('/media/{media}', function (Request $request, $media) {
-            $mediaItem = \Spatie\MediaLibrary\MediaCollections\Models\Media::findOrFail($media);
+            $mediaItem = Media::query()->find($media);
+            if (!$mediaItem) {
+                abort(404);
+            }
             $path = $mediaItem->getPath(); // 物理パス
+            if (!file_exists($path)) {
+                abort(404);
+            }
             return response()->file($path);
         })->middleware('signed')->withoutMiddleware(['auth'])->name('media.show.signed');
     });

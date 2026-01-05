@@ -68,13 +68,13 @@ class Quick extends Component
 
         $code = trim($this->code);
         if ($code === '') {
-            $this->message = __('asset_guard.quick_inspection.not_found');
+            $this->message = __('asset-guard::quick_inspection.not_found');
             return;
         }
 
         $asset = AssetGuardAsset::query()->where('code', $code)->first();
         if ($asset === null) {
-            $this->message = __('asset_guard.quick_inspection.not_found');
+            $this->message = __('asset-guard::quick_inspection.not_found');
             return;
         }
 
@@ -212,7 +212,7 @@ class Quick extends Component
         // 常にユーザーが選択したチェックリスト（使用前/アドホック）で開始する。
 
         if (!$this->selectedChecklistId) {
-            $this->message = __('asset_guard.quick_inspection.no_plan');
+            $this->message = __('asset-guard::quick_inspection.no_plan');
             return;
         }
 

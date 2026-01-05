@@ -76,7 +76,11 @@ final class InspectionDraftService
         $forms = [];
         $checklist = AssetGuardInspectionChecklist::query()
             ->with(['items' => fn($q) => $q->orderBy('sort_order')->orderBy('id')])
-            ->findOrFail($checklistId);
+            ->find($checklistId);
+
+        if (!$checklist) {
+            return [];
+        }
 
         foreach ($checklist->items as $item) {
             $forms[$item->id] = [
@@ -106,7 +110,10 @@ final class InspectionDraftService
      */
     public function buildFormsForPlan(int $planId, ChecklistOptionsService $options, ?int &$assetId = null, ?int &$checklistId = null): array
     {
-        $plan = AssetGuardMaintenancePlan::query()->with('checklist.items', 'asset')->findOrFail($planId);
+        $plan = AssetGuardMaintenancePlan::query()->with('checklist.items', 'asset')->find($planId);
+        if (!$plan) {
+            return [];
+        }
         $forms = [];
         $items = $plan->checklist?->items ?? collect();
         foreach ($items as $item) {
