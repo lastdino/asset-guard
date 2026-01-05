@@ -25,7 +25,8 @@ class PreUseInspectionGate
                     $q->where('applies_to', 'asset_type')
                       ->when($assetTypeId, fn ($q) => $q->where('asset_type_id', $assetTypeId));
                 })->orWhere(function ($q) {
-                    $q->where('applies_to', 'asset');
+                    $q->where('applies_to', 'asset')
+                      ->where('asset_id', $this->assetId);
                 });
             })
             ->get(['id']);
@@ -35,24 +36,18 @@ class PreUseInspectionGate
             return false;
         }
 
-        $tz = config('app.timezone');
-        $now = Carbon::now($tz);
+        $today = Carbon::now(config('app.timezone'))->toDateString();
 
         foreach ($checklists as $checklist) {
-            $lastCompleted = AssetGuardInspection::query()
+            $isDone = AssetGuardInspection::query()
                 ->where('asset_id', $this->assetId)
                 ->where('checklist_id', $checklist->id)
                 ->where('status', 'Completed')
-                ->latest('performed_at')
-                ->first();
+                ->whereDate('performed_at', $today)
+                ->exists();
 
-            if (! $lastCompleted) {
-                return true; // 1件も完了がなければ要点検
-            }
-
-            $performed = $lastCompleted->performed_at?->copy()->timezone($tz);
-            if ($performed === null || ! $performed->isSameDay($now)) {
-                return true; // 当日未完了なら要点検
+            if (! $isDone) {
+                return true; // 当日完了していなければ要点検
             }
         }
 

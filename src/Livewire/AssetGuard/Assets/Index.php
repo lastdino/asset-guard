@@ -301,10 +301,10 @@ class Index extends Component
     }
 
     #[On('pre-use-inspection-finished')]
+    #[On('refresh')]
     public function onPreUseFinished(): void
     {
         if ($this->selectedAssetId) {
-            $this->preUseRequired = false;
             $this->loadSelectedAsset(true);
         }
     }
