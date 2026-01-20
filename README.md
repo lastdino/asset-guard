@@ -18,7 +18,7 @@ Asset Guard は、設備資産の台帳管理・点検（定期/使用前）・�
 
 技術スタック:
 - Laravel 12, PHP 8.4
-- Livewire v3, Volt（一部）, Flux UI Free
+- Livewire v3-v4,Flux UI Free
 - Tailwind CSS v4
 - Spatie Media Library（添付）
 
@@ -34,7 +34,7 @@ Asset Guard は、設備資産の台帳管理・点検（定期/使用前）・�
 - 変更したい場合は publish を利用（下記）
 
 3) 依存関係（抜粋）
-- livewire/livewire: ^3
+- livewire/livewire: ^3-v4
 - tailwindcss: ^4（ビルド必要）
 - spatie/laravel-medialibrary
 
