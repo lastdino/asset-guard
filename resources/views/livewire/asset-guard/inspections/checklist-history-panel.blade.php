@@ -9,6 +9,7 @@
 
                 @livewire(\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistHistoryList::class, [
                     'checklistId' => $checklist->id,
+                    'assetId' => $this->assetId,
                 ], key('hist-'.$checklist->id))
             </div>
         @empty
