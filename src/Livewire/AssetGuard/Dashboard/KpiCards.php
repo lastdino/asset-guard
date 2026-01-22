@@ -5,21 +5,25 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Dashboard;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardIncident;
-use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 use Livewire\Component;
 
 class KpiCards extends Component
 {
     public ?float $complianceRate = null;
+
     public int $overdueCount = 0;
+
     public int $openIncidents = 0;
+
     public int $downAssets = 0;
 
     // Severity-aware KPIs
-    public array $openIncidentsBySeverity = ['Low'=>0,'Medium'=>0,'High'=>0,'Critical'=>0];
+    public array $openIncidentsBySeverity = ['Low' => 0, 'Medium' => 0, 'High' => 0, 'Critical' => 0];
+
     public int $openIncidentsSlaBreached = 0;
-    public array $mttrBySeverity = ['Low'=>null,'Medium'=>null,'High'=>null,'Critical'=>null];
+
+    public array $mttrBySeverity = ['Low' => null, 'Medium' => null, 'High' => null, 'Critical' => null];
 
     public string $period = 'this_month';
 
@@ -56,9 +60,9 @@ class KpiCards extends Component
         };
     }
 
-    private function slaDueAtFor(\Illuminate\Support\Carbon $occurredAt, string $severity): \Illuminate\Support\Carbon
+    private function slaDueAtFor(\DateTimeInterface $occurredAt, string $severity): \Illuminate\Support\Carbon
     {
-        return $occurredAt->copy()->addHours($this->slaHoursFor($severity));
+        return Carbon::instance($occurredAt)->copy()->addHours($this->slaHoursFor($severity));
     }
 
     public function calculate(): void
@@ -86,7 +90,7 @@ class KpiCards extends Component
             ->get();
 
         $this->openIncidents = $open->count();
-        $this->openIncidentsBySeverity = ['Low'=>0,'Medium'=>0,'High'=>0,'Critical'=>0];
+        $this->openIncidentsBySeverity = ['Low' => 0, 'Medium' => 0, 'High' => 0, 'Critical' => 0];
         foreach ($open as $row) {
             $sev = $row->severity ?: 'Medium';
             if (isset($this->openIncidentsBySeverity[$sev])) {
@@ -95,8 +99,11 @@ class KpiCards extends Component
         }
 
         $this->openIncidentsSlaBreached = $open->filter(function ($i) {
-            if (!$i->occurred_at) { return false; }
+            if (! $i->occurred_at) {
+                return false;
+            }
             $due = $this->slaDueAtFor($i->occurred_at, $i->severity ?: 'Medium');
+
             return now()->greaterThan($due);
         })->count();
 
@@ -106,12 +113,12 @@ class KpiCards extends Component
             ->whereNotNull('occurred_at')
             ->get(['severity', 'occurred_at', 'completed_at']);
 
-        $groups = $completedBySeverity->groupBy(fn($i) => $i->severity ?: 'Medium');
-        $this->mttrBySeverity = ['Low'=>null,'Medium'=>null,'High'=>null,'Critical'=>null];
-        foreach (['Low','Medium','High','Critical'] as $sev) {
+        $groups = $completedBySeverity->groupBy(fn ($i) => $i->severity ?: 'Medium');
+        $this->mttrBySeverity = ['Low' => null, 'Medium' => null, 'High' => null, 'Critical' => null];
+        foreach (['Low', 'Medium', 'High', 'Critical'] as $sev) {
             $set = $groups->get($sev, collect());
             if ($set->isNotEmpty()) {
-                $avgSeconds = (int) round($set->avg(fn($i) => $i->completed_at->diffInSeconds($i->occurred_at)));
+                $avgSeconds = (int) round($set->avg(fn ($i) => $i->completed_at->diffInSeconds($i->occurred_at)));
                 $this->mttrBySeverity[$sev] = round($avgSeconds / 3600, 1);
             }
         }
