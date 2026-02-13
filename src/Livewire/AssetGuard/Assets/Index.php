@@ -10,6 +10,7 @@ use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardAssetType;
 use Lastdino\AssetGuard\Models\AssetGuardLocation;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
+use Lastdino\AssetGuard\Services\OperatingStatusService;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -321,6 +322,26 @@ class Index extends Component
         if ($this->selectedAssetId) {
             $this->loadSelectedAsset(true);
         }
+    }
+
+    public function toggleOperatingStatus(): void
+    {
+        if (! $this->selectedAssetId) {
+            return;
+        }
+
+        $asset = AssetGuardAsset::findOrFail($this->selectedAssetId);
+        $service = app(OperatingStatusService::class);
+
+        $currentStatusForDay = $service->getStatusForDate($asset, now());
+        $newStatus = $currentStatusForDay === 'running' ? 'stopped' : 'running';
+
+        $service->setStatusForDay($asset, now(), $newStatus);
+
+        $this->loadSelectedAsset(true);
+        // 点検必須判定も再計算
+        $this->preUseRequired = (new PreUseInspectionGate(assetId: $this->selectedAssetId))->isInspectionRequired();
+        $this->dispatch('refresh');
     }
 
     public function getLocationOptionsProperty()

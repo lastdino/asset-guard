@@ -20,7 +20,7 @@
                     <flux:button
                         variant="primary"
                         size="sm"
-                        wire:click="$dispatch('open-inspection', { mode: 'preuse', assetId: {{ $asset->id }} })"
+                        wire:click="$dispatch('open-inspection', [{ mode: 'preuse', assetId: {{ $asset->id }} }])"
                     >
                         {{ __('asset-guard::common.inspect') }}
                     </flux:button>

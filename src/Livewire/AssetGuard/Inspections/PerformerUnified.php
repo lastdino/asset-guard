@@ -77,6 +77,10 @@ class PerformerUnified extends Component
     #[On('open-inspection')]
     public function openInspection(array $payload = []): void
     {
+        if (isset($payload[0]) && is_array($payload[0])) {
+            $payload = $payload[0];
+        }
+
         $this->resetErrorBag();
         $this->resetValidation();
 

@@ -13,16 +13,13 @@ class RunningUninspectedAssets extends Component
 
     public function render()
     {
-        // 稼働中の資産を取得
-        $runningAssets = AssetGuardAsset::query()
-            ->whereHas('currentOperatingLog', function ($q) {
-                $q->where('status', 'running');
-            })
+        // 当日一度でも稼働実績のある資産を取得
+        $allAssets = AssetGuardAsset::query()
             ->with(['location', 'assetType'])
             ->get();
 
-        // 当日の点検が必要なものをフィルタリング
-        $uninspectedAssets = $runningAssets->filter(function ($asset) {
+        // その中で、当日の点検が必要なものをフィルタリング
+        $uninspectedAssets = $allAssets->filter(function ($asset) {
             return (new PreUseInspectionGate(assetId: $asset->id))->isInspectionRequired();
         });
 

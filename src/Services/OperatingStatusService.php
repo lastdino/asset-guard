@@ -2,13 +2,14 @@
 
 namespace Lastdino\AssetGuard\Services;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardOperatingLog;
 
 class OperatingStatusService
 {
-    public function setStatus(AssetGuardAsset $asset, string $status, ?Carbon $at = null, string $source = 'manual'): void
+    public function setStatus(AssetGuardAsset $asset, string $status, CarbonInterface|Carbon|null $at = null, string $source = 'manual'): void
     {
         $at = $at ?? Carbon::now();
 
@@ -44,10 +45,10 @@ class OperatingStatusService
         ]);
     }
 
-    public function setStatusForDay(AssetGuardAsset $asset, Carbon $date, string $status, string $source = 'manual'): void
+    public function setStatusForDay(AssetGuardAsset $asset, CarbonInterface|Carbon $date, string $status, string $source = 'manual'): void
     {
-        $startOfDay = $date->copy()->startOfDay();
-        $endOfDay = $date->copy()->endOfDay();
+        $startOfDay = Carbon::instance($date)->startOfDay();
+        $endOfDay = Carbon::instance($date)->endOfDay();
 
         if ($status === 'running') {
             $this->clearLogsForRange($asset, $startOfDay, $endOfDay);
@@ -63,7 +64,7 @@ class OperatingStatusService
         }
     }
 
-    protected function clearLogsForRange(AssetGuardAsset $asset, Carbon $start, Carbon $end): void
+    protected function clearLogsForRange(AssetGuardAsset $asset, CarbonInterface|Carbon $start, CarbonInterface|Carbon $end): void
     {
         $startStr = $start->toDateTimeString();
         $endStr = $end->toDateTimeString();
@@ -115,7 +116,7 @@ class OperatingStatusService
         }
     }
 
-    public function toggleStatus(AssetGuardAsset $asset, ?Carbon $at = null): void
+    public function toggleStatus(AssetGuardAsset $asset, CarbonInterface|Carbon|null $at = null): void
     {
         $currentStatus = $asset->operating_status;
         $newStatus = $currentStatus === 'running' ? 'stopped' : 'running';
@@ -123,10 +124,10 @@ class OperatingStatusService
         $this->setStatus($asset, $newStatus, $at);
     }
 
-    public function getStatusForDate(AssetGuardAsset $asset, Carbon $date): string
+    public function getStatusForDate(AssetGuardAsset $asset, CarbonInterface|Carbon $date): string
     {
-        $startOfDay = $date->copy()->startOfDay();
-        $endOfDay = $date->copy()->endOfDay();
+        $startOfDay = Carbon::instance($date)->startOfDay();
+        $endOfDay = Carbon::instance($date)->endOfDay();
 
         // 比較のために文字列に変換（DBの精度に合わせる）
         $startStr = $startOfDay->toDateTimeString();

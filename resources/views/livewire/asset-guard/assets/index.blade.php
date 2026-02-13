@@ -312,6 +312,22 @@
                         </flux:badge>
                     </div>
                     <div><span class="text-zinc-500">種別:</span> {{ optional($selectedAsset->assetType)->name ?? '-' }}</div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-zinc-500">当日稼働状況:</span>
+                        <button
+                            wire:click="toggleOperatingStatus"
+                            class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors {{  app(\Lastdino\AssetGuard\Services\OperatingStatusService::class)->getStatusForDate($selectedAsset, now()) === 'running' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' }}"
+                            title="クリックして本日の稼働状況を切り替え"
+                        >
+                            @if( app(\Lastdino\AssetGuard\Services\OperatingStatusService::class)->getStatusForDate($selectedAsset, now()) === 'running')
+                                <flux:icon icon="bolt" variant="micro" class="text-amber-500" />
+                                稼働中
+                            @else
+                                <flux:icon icon="pause" variant="micro" class="opacity-50" />
+                                停止中
+                            @endif
+                        </button>
+                    </div>
                     @if($selectedAsset->serial_no)
                         <div><span class="text-zinc-500">シリアル:</span> {{ $selectedAsset->serial_no }}</div>
                     @endif

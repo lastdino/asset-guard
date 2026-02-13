@@ -20,8 +20,8 @@ class PreUseInspectionGate
             return false;
         }
 
-        // 停止中なら点検不要（将来的に稼働ログベースで判断）
-        if ($asset->operating_status !== 'running') {
+        // 停止中なら点検不要
+        if (app(OperatingStatusService::class)->getStatusForDate($asset, now()) !== 'running') {
             return false;
         }
 
