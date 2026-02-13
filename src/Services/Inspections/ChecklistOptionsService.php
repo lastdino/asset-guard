@@ -17,7 +17,7 @@ final class ChecklistOptionsService
         $pc = $item->pass_condition ?? null;
         if (is_array($pc) && isset($pc['options']) && is_array($pc['options'])) {
             return collect($pc['options'])
-                ->map(static fn($v) => (string) $v)
+                ->map(static fn ($v) => (string) $v)
                 ->filter()
                 ->values()
                 ->all();
@@ -26,7 +26,7 @@ final class ChecklistOptionsService
         // Fallback to legacy comma-separated choices
         if (property_exists($item, 'choices') && $item->choices) {
             return collect(explode(',', (string) $item->choices))
-                ->map(static fn($v) => trim($v))
+                ->map(static fn ($v) => trim($v))
                 ->filter()
                 ->values()
                 ->all();

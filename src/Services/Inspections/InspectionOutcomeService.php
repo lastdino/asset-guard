@@ -38,19 +38,21 @@ final class InspectionOutcomeService
             if (array_key_exists('max', $payload) && $payload['max'] !== null) {
                 $pass = $pass && $value <= (float) $payload['max'];
             }
+
             return [$pass ? 'Pass' : 'Fail', (string) $value];
         }
 
         // Boolean: store value as same as result (Pass/Fail)
         if ($method === 'boolean') {
             $result = ($payload['result'] ?? 'Pass') ?: 'Pass';
+
             return [$result, $result];
         }
 
         return match ($method) {
-            'text'    => ['Pass', $payload['text'] ?? null],
-            'select'  => ['Pass', $payload['select'] ?? null],
-            default   => ['Pass', null],
+            'text' => ['Pass', $payload['text'] ?? null],
+            'select' => ['Pass', $payload['select'] ?? null],
+            default => ['Pass', null],
         };
     }
 }

@@ -2,17 +2,15 @@
 
 namespace Lastdino\AssetGuard;
 
-use GuzzleHttp\Promise\Create;
 use Illuminate\Support\ServiceProvider;
 use Lastdino\AssetGuard\Livewire\AssetGuard\Assets\Index;
-use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistHistoryList;
-use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Index as InspectionsIndex;
-use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistPanel;
-use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistItemsPanel;
-use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistHistoryPanel;
-use Lastdino\AssetGuard\Livewire\AssetGuard\MaintenancePlans\Index as MaintenancePlansIndex;
 use Lastdino\AssetGuard\Livewire\AssetGuard\Incidents\IncidentPanel;
-
+use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistHistoryList;
+use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistHistoryPanel;
+use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistItemsPanel;
+use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistPanel;
+use Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Index as InspectionsIndex;
+use Lastdino\AssetGuard\Livewire\AssetGuard\MaintenancePlans\Index as MaintenancePlansIndex;
 use Livewire\Livewire;
 
 class AssetGuardServiceProvider extends ServiceProvider
@@ -20,7 +18,7 @@ class AssetGuardServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/asset-guard.php',
+            __DIR__.'/../config/asset-guard.php',
             'asset-guard'
         );
     }
@@ -28,8 +26,8 @@ class AssetGuardServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__ . '/../config/asset-guard.php' => config_path('asset-guard.php'),
-        ],'asset-guard-config');
+            __DIR__.'/../config/asset-guard.php' => config_path('asset-guard.php'),
+        ], 'asset-guard-config');
 
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/asset-guard'),
@@ -67,14 +65,14 @@ class AssetGuardServiceProvider extends ServiceProvider
         Livewire::component('asset-guard.inspections.checklist-history-list', ChecklistHistoryList::class);
         Livewire::component('asset-guard.inspections.performer', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Performer::class);
         Livewire::component('asset-guard.inspections.batch-performer', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\BatchPerformer::class);
-        Livewire::component('asset-guard.inspections.pre-use-performer',\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PreUsePerformer::class);
+        Livewire::component('asset-guard.inspections.pre-use-performer', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PreUsePerformer::class);
         Livewire::component('asset-guard.inspections.show', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Show::class);
         Livewire::component('asset-guard.inspections.checklist-items-editor', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\ChecklistItemsEditor::class);
         Livewire::component('asset-guard.inspections.quick', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Quick::class);
         Livewire::component('asset-guard.maintenance-plans.index', MaintenancePlansIndex::class);
 
         Livewire::component('asset-guard.incidents.incident-panel', IncidentPanel::class);
-        Livewire::component('asset-guard.incidents.index',\Lastdino\AssetGuard\Livewire\AssetGuard\Incidents\Index::class);
+        Livewire::component('asset-guard.incidents.index', \Lastdino\AssetGuard\Livewire\AssetGuard\Incidents\Index::class);
         // Dashboard components
         Livewire::component('asset-guard.dashboard.index', \Lastdino\AssetGuard\Livewire\AssetGuard\Dashboard\Index::class);
         Livewire::component('asset-guard.dashboard.kpi-cards', \Lastdino\AssetGuard\Livewire\AssetGuard\Dashboard\KpiCards::class);

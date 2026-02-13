@@ -8,7 +8,7 @@ use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 
 class GenerateMaintenanceOccurrences
 {
-    public function __construct(public int $monthsAhead = 6) { }
+    public function __construct(public int $monthsAhead = 6) {}
 
     public function handle(Plan $plan): int
     {
@@ -40,6 +40,7 @@ class GenerateMaintenanceOccurrences
 
         if ($unit === 'OneTime') {
             $this->create($plan, $start);
+
             return 1;
         }
 

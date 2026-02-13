@@ -84,6 +84,35 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-950">
+                <tr class="bg-zinc-50/50 dark:bg-zinc-900/50">
+                    <td class="sticky left-0 z-10 bg-zinc-50 dark:bg-zinc-900 py-4 pl-4 pr-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 sm:pl-6 border-r print:static print:py-1">
+                        稼働状況
+                    </td>
+                    @for ($day = 1; $day <= $this->daysInMonth; $day++)
+                        @php
+                            $date = \Illuminate\Support\Carbon::parse($this->yearMonth)->day($day);
+                            $isSaturday = $date->isSaturday();
+                            $isSunday = $date->isSunday();
+                            $status = $this->operatingStatuses[$day] ?? 'stopped';
+                            $colorClass = match($status) {
+                                'running' => 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer',
+                                'stopped' => 'bg-zinc-50 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer',
+                                default => ''
+                            };
+                        @endphp
+                        <td
+                            wire:click="toggleOperatingStatus({{ $day }})"
+                            class="px-2 py-4 text-center text-sm cursor-pointer border-r {{ $colorClass }} print:py-1 print:px-0"
+                            title="クリックして稼働・停止を切り替え"
+                        >
+                            @if ($status === 'running')
+                                <flux:icon icon="bolt" variant="micro" class="mx-auto" />
+                            @else
+                                <flux:icon icon="pause" variant="micro" class="mx-auto opacity-30" />
+                            @endif
+                        </td>
+                    @endfor
+                </tr>
                 @foreach ($this->checklistsWithItems as $checklist)
                     <tr class="bg-zinc-50 dark:bg-zinc-900">
                         <td colspan="{{ $this->daysInMonth + 1 }}" class="py-2 pl-4 pr-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 sm:pl-6 border-r">

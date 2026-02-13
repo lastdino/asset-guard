@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\AssetTypes;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View as IlluminateView;
-use Lastdino\AssetGuard\Models\{AssetGuardInspectionChecklist as Checklist, AssetGuardAsset as Asset, AssetGuardMaintenancePlan as Plan};
+use Lastdino\AssetGuard\Models\AssetGuardAsset as Asset;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist as Checklist;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -99,11 +100,11 @@ class ChecklistManager extends Component
             return;
         }
         $validated = $this->validate([
-            'form.name' => ['required','string','max:255'],
-            'form.active' => ['required','boolean'],
-            'form.frequency_unit' => ['nullable','string','in:OneTime,PerUse,Daily,Weekly,Monthly,Quarterly,SemiAnnual,Annual,Custom,day,week,month,year'],
-            'form.frequency_value' => ['nullable','integer','min:1','max:65535'],
-            'form.require_before_activation' => ['required','boolean'],
+            'form.name' => ['required', 'string', 'max:255'],
+            'form.active' => ['required', 'boolean'],
+            'form.frequency_unit' => ['nullable', 'string', 'in:OneTime,PerUse,Daily,Weekly,Monthly,Quarterly,SemiAnnual,Annual,Custom,day,week,month,year'],
+            'form.frequency_value' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'form.require_before_activation' => ['required', 'boolean'],
         ], [], [
             'form.name' => __('asset-guard::checklists.name'),
             'form.active' => __('asset-guard::checklists.active'),
@@ -173,6 +174,7 @@ class ChecklistManager extends Component
                     if ($isPerUse) {
                         // Per-use: do not keep Scheduled plans for this checklist
                         $existing->each(fn (Plan $p) => $p->update(['status' => 'Archived']));
+
                         continue;
                     }
 
@@ -188,6 +190,7 @@ class ChecklistManager extends Component
                             $payload['scheduled_at'] = now();
                         }
                         $current->update($payload);
+
                         continue;
                     }
 

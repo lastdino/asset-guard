@@ -3,41 +3,52 @@
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Assets;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardAssetType;
 use Lastdino\AssetGuard\Models\AssetGuardLocation;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
-use Illuminate\Support\Carbon;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\On;
 
 class Index extends Component
 {
     use WithFileUploads;
+
     // Filters
     public string $search = '';
+
     public string $status = '';
+
     public ?int $assetTypeId = null;
 
     // Individual search fields
     public string $searchCode = '';
+
     public string $searchName = '';
+
     public string $searchLocation = '';
+
     public string $searchSerial = '';
+
     public string $searchFixed = '';
 
     // Modals
     public bool $showCreate = false;
+
     public bool $showEdit = false;
+
     public ?int $editingId = null;
 
     // Retire parent modal
     public bool $showRetireParent = false;
+
     public ?int $retireParentId = null;
+
     public string $retireChildrenStrategy = 'cascade'; // cascade|detach|keep
 
     // Form
@@ -58,12 +69,16 @@ class Index extends Component
 
     // Detail modal state
     public ?int $selectedAssetId = null;
+
     public $selectedAsset = null; // ?AssetGuardAsset
+
     public string $activeTab = 'inspections'; // inspections|items
+
     public bool $preUseRequired = false;
 
     // Incident report modal state
     public bool $showIncidentModal = false;
+
     public ?int $incidentEditingId = null;
 
     // Incident form state
@@ -83,65 +98,63 @@ class Index extends Component
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $assetImages = [];
 
-
     protected function rulesForm(): array
     {
         $uniqueCode = 'unique:asset_guard_assets,code';
         if ($this->editingId) {
-            $uniqueCode .= ',' . $this->editingId;
+            $uniqueCode .= ','.$this->editingId;
         }
 
         return [
-            'form.code' => ['required','string','max:100', $uniqueCode],
-            'form.name' => ['required','string','max:255'],
-            'form.status' => ['required','in:Active,Inactive,UnderMaintenance,Retired'],
-            'form.serial_no' => ['nullable','string','max:255'],
-            'form.fixed_asset_no' => ['nullable','string','max:255'],
-            'form.manager_id' => ['nullable','integer'],
-            'form.location_id' => ['nullable','integer','exists:asset_guard_locations,id'],
-            'form.installed_at' => ['nullable','date'],
-            'form.manufacturer' => ['nullable','string','max:255'],
-            'form.spec' => ['nullable','string'],
-            'form.parent_id' => ['nullable','integer'],
-            'form.asset_type_id' => ['nullable','integer','exists:asset_guard_asset_types,id'],
+            'form.code' => ['required', 'string', 'max:100', $uniqueCode],
+            'form.name' => ['required', 'string', 'max:255'],
+            'form.status' => ['required', 'in:Active,Inactive,UnderMaintenance,Retired'],
+            'form.serial_no' => ['nullable', 'string', 'max:255'],
+            'form.fixed_asset_no' => ['nullable', 'string', 'max:255'],
+            'form.manager_id' => ['nullable', 'integer'],
+            'form.location_id' => ['nullable', 'integer', 'exists:asset_guard_locations,id'],
+            'form.installed_at' => ['nullable', 'date'],
+            'form.manufacturer' => ['nullable', 'string', 'max:255'],
+            'form.spec' => ['nullable', 'string'],
+            'form.parent_id' => ['nullable', 'integer'],
+            'form.asset_type_id' => ['nullable', 'integer', 'exists:asset_guard_asset_types,id'],
         ];
     }
-
 
     protected function rulesAssetImages(): array
     {
         return [
-            'assetImages' => ['nullable','array','max:10'],
-            'assetImages.*' => ['image','max:20480','mimetypes:image/jpeg,image/png'],
+            'assetImages' => ['nullable', 'array', 'max:10'],
+            'assetImages.*' => ['image', 'max:20480', 'mimetypes:image/jpeg,image/png'],
         ];
     }
 
     public function getUserOptionsProperty(): Collection
     {
-        return \App\Models\User::query()->orderBy('name')->get(['id','name']);
+        return \App\Models\User::query()->orderBy('name')->get(['id', 'name']);
     }
 
     public function getAssetsProperty()
     {
         return AssetGuardAsset::query()
             // Global quick search across key columns
-            ->when($this->search !== '', fn($q) => $q->where(function ($qq) {
+            ->when($this->search !== '', fn ($q) => $q->where(function ($qq) {
                 $term = "%{$this->search}%";
                 $qq->where('code', 'like', $term)
                     ->orWhere('name', 'like', $term)
-                    ->orWhereHas('location', fn($lq) => $lq->where('name', 'like', $term))
+                    ->orWhereHas('location', fn ($lq) => $lq->where('name', 'like', $term))
                     ->orWhere('serial_no', 'like', $term)
                     ->orWhere('fixed_asset_no', 'like', $term);
             }))
             // Individual field filters (AND logic)
-            ->when($this->searchCode !== '', fn($q) => $q->where('code', "$this->searchCode"))
-            ->when($this->searchName !== '', fn($q) => $q->where('name', 'like', "%{$this->searchName}%"))
-            ->when($this->searchLocation !== '', fn($q) => $q->where('location_id', $this->searchLocation))
-            ->when($this->searchSerial !== '', fn($q) => $q->where('serial_no', 'like', "%{$this->searchSerial}%"))
-            ->when($this->searchFixed !== '', fn($q) => $q->where('fixed_asset_no', 'like', "%{$this->searchFixed}%"))
-            ->when($this->status !== '', fn($q) => $q->where('status', $this->status))
-            ->when($this->assetTypeId, fn($q) => $q->where('asset_type_id', $this->assetTypeId))
-            ->with(['children' => fn($q) => $q->orderBy('name'), 'location', 'assetType:id,name'])
+            ->when($this->searchCode !== '', fn ($q) => $q->where('code', "$this->searchCode"))
+            ->when($this->searchName !== '', fn ($q) => $q->where('name', 'like', "%{$this->searchName}%"))
+            ->when($this->searchLocation !== '', fn ($q) => $q->where('location_id', $this->searchLocation))
+            ->when($this->searchSerial !== '', fn ($q) => $q->where('serial_no', 'like', "%{$this->searchSerial}%"))
+            ->when($this->searchFixed !== '', fn ($q) => $q->where('fixed_asset_no', 'like', "%{$this->searchFixed}%"))
+            ->when($this->status !== '', fn ($q) => $q->where('status', $this->status))
+            ->when($this->assetTypeId, fn ($q) => $q->where('asset_type_id', $this->assetTypeId))
+            ->with(['children' => fn ($q) => $q->orderBy('name'), 'location', 'assetType:id,name'])
             ->latest('id')
             ->limit(100)
             ->get();
@@ -181,7 +194,7 @@ class Index extends Component
 
     public function update(): void
     {
-        if (!$this->editingId) {
+        if (! $this->editingId) {
             return;
         }
         $data = $this->validate($this->rulesForm());
@@ -200,7 +213,7 @@ class Index extends Component
 
     public function retireParentCommit(): void
     {
-        if (!$this->retireParentId) {
+        if (! $this->retireParentId) {
             return;
         }
         $parent = AssetGuardAsset::query()->with('children')->findOrFail($this->retireParentId);
@@ -208,9 +221,9 @@ class Index extends Component
 
         match ($this->retireChildrenStrategy) {
             'cascade' => $parent->children()->update(['status' => 'Retired']),
-            'detach'  => $parent->children()->update(['parent_id' => null]),
-            'keep'    => null,
-            default   => null,
+            'detach' => $parent->children()->update(['parent_id' => null]),
+            'keep' => null,
+            default => null,
         };
 
         $this->showRetireParent = false;
@@ -240,10 +253,9 @@ class Index extends Component
         $this->activeTab = 'details';
     }
 
-
     public function switchTab(string $tab): void
     {
-        if (! in_array($tab, ['inspections','items','incidents'], true)) {
+        if (! in_array($tab, ['inspections', 'items', 'incidents'], true)) {
             return;
         }
         $this->activeTab = $tab;
@@ -254,6 +266,7 @@ class Index extends Component
     {
         if ($this->selectedAssetId === null) {
             $this->selectedAsset = null;
+
             return;
         }
         $query = AssetGuardAsset::query();
@@ -277,6 +290,7 @@ class Index extends Component
         foreach ($this->assets as $asset) {
             $map[$asset->id] = (new PreUseInspectionGate(assetId: $asset->id))->isInspectionRequired();
         }
+
         return $map;
     }
 
@@ -309,15 +323,14 @@ class Index extends Component
         }
     }
 
-
     public function getLocationOptionsProperty()
     {
-        return AssetGuardLocation::query()->orderBy('name')->get(['id','name']);
+        return AssetGuardLocation::query()->orderBy('name')->get(['id', 'name']);
     }
 
     public function getTypeOptionsProperty()
     {
-        return AssetGuardAssetType::query()->orderBy('sort_order')->orderBy('name')->get(['id','name']);
+        return AssetGuardAssetType::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
     }
 
     public function uploadAssetImages(): void
@@ -356,12 +369,14 @@ class Index extends Component
         $this->loadSelectedAsset(true);
     }
 
-    public function temporaryURL($id){
+    public function temporaryURL($id)
+    {
         $url = URL::temporarySignedRoute(
             config('asset-guard.routes.prefix').'.media.show.signed',
             now()->addMinutes(240), // 240分間有効
             ['media' => $id]
         );
+
         return $url;
     }
 

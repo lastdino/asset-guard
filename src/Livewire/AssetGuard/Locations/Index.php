@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Locations;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\View\View as IlluminateView;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View as IlluminateView;
 use Lastdino\AssetGuard\Models\AssetGuardLocation as Location;
-use Livewire\WithPagination;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Index extends Component
 {
@@ -88,6 +88,7 @@ class Index extends Component
         $loc = Location::query()->withCount('assets')->findOrFail($id);
         if ($loc->assets_count > 0) {
             $this->addError('delete', __('asset-guard::validation.custom.cannot_delete_in_use'));
+
             return;
         }
 
@@ -100,7 +101,7 @@ class Index extends Component
         return Location::query()
             ->with(['parent:id,name'])
             ->withCount(['children', 'assets'])
-            ->when($this->search !== '', fn($q) => $q->where('name', 'like', "%{$this->search}%"))
+            ->when($this->search !== '', fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->orderBy('name')
             ->paginate(10);
     }

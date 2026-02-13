@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
+use Lastdino\AssetGuard\Models\AssetGuardInspection;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionItemResult;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
-use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardMaintenancePlan, AssetGuardInspectionChecklistItem};
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -16,24 +19,36 @@ class Performer extends Component
     use WithFileUploads;
 
     public bool $open = false;
+
     public ?int $planId = null;
+
     public ?int $checklistItemId = null;
 
     public ?string $assetLabel = null;
+
     public ?string $itemName = null;
+
     public ?string $method = null;
+
     public ?float $minValue = null;
+
     public ?float $maxValue = null;
+
     public array $options = [];
 
     public ?string $result = null;
+
     public ?string $text = null;
+
     public ?string $note = null;
+
     public $number = null;
+
     public ?string $select = null;
 
     /** Inspector fields */
     public ?int $inspectorId = null;
+
     public array $coInspectorIds = [];
 
     /** @var array<\Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
@@ -50,11 +65,11 @@ class Performer extends Component
             ->findOrFail($planId);
         $item = AssetGuardInspectionChecklistItem::query()->findOrFail($checklistItemId);
 
-        $this->reset(['result','text','note','attachments','number','select','coInspectorIds']);
+        $this->reset(['result', 'text', 'note', 'attachments', 'number', 'select', 'coInspectorIds']);
 
         $this->planId = $plan->id;
         $this->checklistItemId = $item->id;
-        $this->assetLabel = ($plan->asset?->code ?? '') . ' — ' . ($plan->asset?->name ?? '');
+        $this->assetLabel = ($plan->asset?->code ?? '').' — '.($plan->asset?->name ?? '');
         $this->itemName = $item->name;
         $this->method = $item->method;
         $this->minValue = $item->min_value !== null ? (float) $item->min_value : null;
@@ -66,7 +81,7 @@ class Performer extends Component
         if ($this->method === 'boolean') {
             $this->result = 'Pass';
         }
-        $this->medias= $item->getMedia('reference_photos');
+        $this->medias = $item->getMedia('reference_photos');
 
         // Prefill from existing draft if any
         $this->hydrateFromDraftPlan($plan, $item);
@@ -77,26 +92,28 @@ class Performer extends Component
     protected function rules(): array
     {
         return [
-            'result' => [Rule::requiredIf(fn() => $this->method === 'boolean'), Rule::in(['Pass','Fail'])],
-            'number' => [Rule::requiredIf(fn() => $this->method === 'number'), 'numeric',
+            'result' => [Rule::requiredIf(fn () => $this->method === 'boolean'), Rule::in(['Pass', 'Fail'])],
+            'number' => [Rule::requiredIf(fn () => $this->method === 'number'), 'numeric',
                 function (string $attr, $value, $fail) {
-                    if ($value === null || $value === '') { return; }
+                    if ($value === null || $value === '') {
+                        return;
+                    }
                     if ($this->minValue !== null && $value < $this->minValue) {
                         $fail('下限値を下回っています。');
                     }
                     if ($this->maxValue !== null && $value > $this->maxValue) {
                         $fail('上限値を上回っています。');
                     }
-                }
+                },
             ],
-            'text'   => [Rule::requiredIf(fn() => $this->method === 'text'), 'string', 'max:2000'],
-            'select' => [Rule::requiredIf(fn() => $this->method === 'select'), Rule::in($this->options)],
-            'note'   => ['nullable', 'string', 'max:2000'],
-            'attachments' => ['array','max:10'],
+            'text' => [Rule::requiredIf(fn () => $this->method === 'text'), 'string', 'max:2000'],
+            'select' => [Rule::requiredIf(fn () => $this->method === 'select'), Rule::in($this->options)],
+            'note' => ['nullable', 'string', 'max:2000'],
+            'attachments' => ['array', 'max:10'],
             'attachments.*' => ['nullable', 'file', 'max:20480', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
-            'inspectorId' => ['required','integer','exists:users,id'],
+            'inspectorId' => ['required', 'integer', 'exists:users,id'],
             'coInspectorIds' => ['array'],
-            'coInspectorIds.*' => ['integer','exists:users,id','different:inspectorId'],
+            'coInspectorIds.*' => ['integer', 'exists:users,id', 'different:inspectorId'],
         ];
     }
 
@@ -112,9 +129,9 @@ class Performer extends Component
         ]);
 
         $inspection->update(['performed_by_user_id' => $this->inspectorId]);
-        $sync = collect($this->coInspectorIds)->unique()->values()->mapWithKeys(fn($id) => [$id => ['role' => 'Assistant']])->all();
+        $sync = collect($this->coInspectorIds)->unique()->values()->mapWithKeys(fn ($id) => [$id => ['role' => 'Assistant']])->all();
         $inspection->inspectors()->sync($sync + [
-            $this->inspectorId => ['role' => 'Primary']
+            $this->inspectorId => ['role' => 'Primary'],
         ]);
 
         return $inspection;
@@ -122,7 +139,9 @@ class Performer extends Component
 
     public function saveDraft(): void
     {
-        if ($this->planId === null || $this->checklistItemId === null) { return; }
+        if ($this->planId === null || $this->checklistItemId === null) {
+            return;
+        }
         $this->validate();
 
         $plan = AssetGuardMaintenancePlan::query()->findOrFail($this->planId);
@@ -147,7 +166,8 @@ class Performer extends Component
                     ->addMedia($file->getRealPath())
                     ->usingFileName($file->getClientOriginalName())
                     ->toMediaCollection('attachments');
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
         }
 
         $this->dispatch('saved-draft');
@@ -155,7 +175,9 @@ class Performer extends Component
 
     public function finalize(): void
     {
-        if ($this->planId === null || $this->checklistItemId === null) { return; }
+        if ($this->planId === null || $this->checklistItemId === null) {
+            return;
+        }
         $this->validate();
 
         $plan = AssetGuardMaintenancePlan::query()->findOrFail($this->planId);
@@ -180,7 +202,8 @@ class Performer extends Component
                     ->addMedia($file->getRealPath())
                     ->usingFileName($file->getClientOriginalName())
                     ->toMediaCollection('attachments');
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
         }
 
         $inspection->update(['status' => 'Completed', 'performed_at' => Carbon::now()]);
@@ -191,7 +214,8 @@ class Performer extends Component
             'completed_at' => Carbon::now(),
         ]);
 
-        $baseDate = Carbon::parse($plan->scheduled_at ?? Carbon::now());
+        // 点検実施日（今日）を基準日とする
+        $baseDate = Carbon::now();
         $unit = $item->frequency_unit;
         $value = (int) $item->frequency_value;
         $nextDue = InspectionScheduleCalculator::nextDueDate($unit, max(1, $value), $baseDate);
@@ -217,16 +241,21 @@ class Performer extends Component
                 return ['Pass', null];
             }
             $pass = true;
-            if ($this->minValue !== null) { $pass = $pass && $value >= $this->minValue; }
-            if ($this->maxValue !== null) { $pass = $pass && $value <= $this->maxValue; }
+            if ($this->minValue !== null) {
+                $pass = $pass && $value >= $this->minValue;
+            }
+            if ($this->maxValue !== null) {
+                $pass = $pass && $value <= $this->maxValue;
+            }
+
             return [$pass ? 'Pass' : 'Fail', (string) $value];
         }
 
         return match ($this->method) {
             'boolean' => [$this->result ?? 'Pass', null],
-            'text'    => ['Pass', $this->text],
-            'select'  => ['Pass', $this->select],
-            default   => ['Pass', null],
+            'text' => ['Pass', $this->text],
+            'select' => ['Pass', $this->select],
+            default => ['Pass', null],
         };
     }
 
@@ -234,11 +263,12 @@ class Performer extends Component
     {
         if ($item && property_exists($item, 'choices') && $item->choices) {
             return collect(explode(',', (string) $item->choices))
-                ->map(fn($v) => trim($v))
+                ->map(fn ($v) => trim($v))
                 ->filter()
                 ->values()
                 ->all();
         }
+
         return [];
     }
 

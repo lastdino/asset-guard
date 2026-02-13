@@ -10,6 +10,5 @@ class AssetTypeChanged
         public int $assetId,
         public ?int $oldTypeId,
         public ?int $newTypeId,
-    ) {
-    }
+    ) {}
 }

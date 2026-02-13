@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Services;
 
 use Illuminate\Support\Facades\DB;
-use Lastdino\AssetGuard\Models\{AssetGuardAsset as Asset, AssetGuardInspectionChecklist as Checklist, AssetGuardMaintenancePlan as Plan};
+use Lastdino\AssetGuard\Models\AssetGuardAsset as Asset;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist as Checklist;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 
 class SyncPreUsePlanForAsset
 {
@@ -18,10 +20,10 @@ class SyncPreUsePlanForAsset
             ->where(function ($q) use ($asset) {
                 $q->where(function ($q) use ($asset) {
                     $q->where('applies_to', 'asset_type')
-                      ->where('asset_type_id', (int) $asset->asset_type_id);
+                        ->where('asset_type_id', (int) $asset->asset_type_id);
                 })->orWhere(function ($q) use ($asset) {
                     $q->where('applies_to', 'asset')
-                      ->where('asset_id', $asset->id);
+                        ->where('asset_id', $asset->id);
                 });
             })
             ->pluck('id')

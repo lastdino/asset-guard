@@ -4,28 +4,38 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
+use Lastdino\AssetGuard\Models\AssetGuardAsset;
+use Lastdino\AssetGuard\Models\AssetGuardInspection;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 use Livewire\Component;
-use Lastdino\AssetGuard\Models\{AssetGuardAsset, AssetGuardMaintenancePlan, AssetGuardInspectionChecklist, AssetGuardInspection};
 
 class Quick extends Component
 {
     public string $code = '';
+
     public ?int $foundAssetId = null;
+
     public ?string $message = null;
 
     // Page-entry inspector setup modal
     public bool $inspectorSetupOpen = false;
+
     public bool $inspectorSetupConfirmed = false;
 
     // Wizard state (after search)
     public bool $showStartModal = false;
+
     public ?int $inspectorId = null;
+
     /** @var array<int,int> */
     public array $coInspectorIds = [];
+
     public ?int $selectedChecklistId = null;
 
     // Resolved context
     public ?int $pendingOccurrenceId = null;
+
     /** @var array<int, array{id:int,name:string,pre_use:bool}> */
     public array $availableChecklists = [];
 
@@ -45,9 +55,9 @@ class Quick extends Component
     public function confirmInspectorSetup(): void
     {
         $this->validate([
-            'inspectorId' => ['required','integer','exists:users,id'],
+            'inspectorId' => ['required', 'integer', 'exists:users,id'],
             'coInspectorIds' => ['array'],
-            'coInspectorIds.*' => ['integer','exists:users,id','different:inspectorId'],
+            'coInspectorIds.*' => ['integer', 'exists:users,id', 'different:inspectorId'],
         ]);
 
         $this->inspectorSetupConfirmed = true;
@@ -69,12 +79,14 @@ class Quick extends Component
         $code = trim($this->code);
         if ($code === '') {
             $this->message = __('asset-guard::quick_inspection.not_found');
+
             return;
         }
 
         $asset = AssetGuardAsset::query()->where('code', $code)->first();
         if ($asset === null) {
             $this->message = __('asset-guard::quick_inspection.not_found');
+
             return;
         }
 
@@ -100,7 +112,7 @@ class Quick extends Component
             })
             ->orderByDesc('require_before_activation')
             ->orderBy('id')
-            ->get(['id','name','require_before_activation']);
+            ->get(['id', 'name', 'require_before_activation']);
 
         // Exclude pre-use checklists already completed today for this asset
         $today = now(config('app.timezone'))->toDateString();
@@ -127,7 +139,9 @@ class Quick extends Component
         $nearestByChecklist = [];
         foreach ($futurePlans as $fp) {
             $cid = (int) ($fp->checklist_id ?? 0);
-            if ($cid <= 0) { continue; }
+            if ($cid <= 0) {
+                continue;
+            }
             if (! array_key_exists($cid, $nearestByChecklist)) {
                 // Keep the first (earliest) one thanks to orderBy
                 $tz = $fp->timezone ?: config('app.timezone');
@@ -162,6 +176,7 @@ class Quick extends Component
                 $cid = (int) $cl->id;
                 $hasFuture = isset($nearestByChecklist[$cid]);
                 $hasPastDue = in_array($cid, $pastDueChecklistIds, true);
+
                 return $hasFuture || $hasPastDue; // どちらにも該当しない＝プラン無し→除外
             })
             ->map(function ($cl) use ($nearestByChecklist, $pastDueChecklistIds) {
@@ -204,15 +219,16 @@ class Quick extends Component
 
     public function startSelectedInspection(): void
     {
-        if (!$this->foundAssetId || !$this->inspectorId) {
+        if (! $this->foundAssetId || ! $this->inspectorId) {
             return;
         }
 
         // 既存の未完了予定を優先して開く機能は廃止。
         // 常にユーザーが選択したチェックリスト（使用前/アドホック）で開始する。
 
-        if (!$this->selectedChecklistId) {
+        if (! $this->selectedChecklistId) {
             $this->message = __('asset-guard::quick_inspection.no_plan');
+
             return;
         }
 
@@ -222,7 +238,7 @@ class Quick extends Component
         $selected = collect($this->availableChecklists)
             ->firstWhere('id', (int) $this->selectedChecklistId);
         if (is_array($selected)) {
-            $mode = !empty($selected['pre_use']) ? 'preuse' : 'plan-batch';
+            $mode = ! empty($selected['pre_use']) ? 'preuse' : 'plan-batch';
         } else {
             // Fallback: query the checklist to check require_before_activation
             $cl = AssetGuardInspectionChecklist::query()->find($this->selectedChecklistId);
@@ -231,7 +247,7 @@ class Quick extends Component
             }
         }
 
-        if($mode === 'plan-batch'){
+        if ($mode === 'plan-batch') {
             // ユーザーが選択したチェックリストに紐づく「予定（未実施）」を解決して実施する
             // 優先順: 直近の未来予定 -> 直近の期限超過（過去）予定
             $selectedChecklistId = (int) $this->selectedChecklistId;
@@ -264,6 +280,7 @@ class Quick extends Component
             if ($planId === null) {
                 // 対象チェックリストに紐づく予定が存在しないため開始できない
                 $this->message = __('asset-guard::quick_inspection.no_plan');
+
                 return;
             }
 
@@ -273,7 +290,7 @@ class Quick extends Component
                 'inspectorId' => $this->inspectorId,
                 'coInspectorIds' => $this->coInspectorIds,
             ]);
-        }else{
+        } else {
             // Dispatch unified event (no occurrence creation for both modes)
             $this->dispatch('open-inspection', [
                 'mode' => $mode,

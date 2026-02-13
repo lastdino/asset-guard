@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
+use Lastdino\AssetGuard\Models\AssetGuardAsset;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\On;
-use Lastdino\AssetGuard\Models\{AssetGuardAsset, AssetGuardInspectionChecklistItem};
 
 class ChecklistItemsPanel extends Component
 {
     use WithFileUploads;
 
     public int $assetId;
+
     public ?int $checklistId = null;
 
     public array $itemForm = [
@@ -21,9 +23,9 @@ class ChecklistItemsPanel extends Component
         'name' => '',
         'method' => 'text',
         'pass_condition' => null,
-            'min_value' => null,
-            'max_value' => null,
-            'checklist_id' => null,
+        'min_value' => null,
+        'max_value' => null,
+        'checklist_id' => null,
     ];
 
     // 単一の参照写真（必要なら配列に変更）
@@ -40,14 +42,14 @@ class ChecklistItemsPanel extends Component
     protected function rules(): array
     {
         return [
-            'itemForm.id' => ['nullable','integer'],
-            'itemForm.name' => ['required','string','max:255'],
-            'itemForm.method' => ['required','in:text,number,select,boolean'],
-            'itemForm.pass_condition' => ['nullable','array'],
-            'itemForm.min_value' => ['nullable','numeric'],
-            'itemForm.max_value' => ['nullable','numeric'],
-            'itemForm.checklist_id' => ['nullable','integer'],
-            'referencePhoto' => ['nullable','image','max:5120'],
+            'itemForm.id' => ['nullable', 'integer'],
+            'itemForm.name' => ['required', 'string', 'max:255'],
+            'itemForm.method' => ['required', 'in:text,number,select,boolean'],
+            'itemForm.pass_condition' => ['nullable', 'array'],
+            'itemForm.min_value' => ['nullable', 'numeric'],
+            'itemForm.max_value' => ['nullable', 'numeric'],
+            'itemForm.checklist_id' => ['nullable', 'integer'],
+            'referencePhoto' => ['nullable', 'image', 'max:5120'],
         ];
     }
 
@@ -66,7 +68,7 @@ class ChecklistItemsPanel extends Component
 
     public function openEdit(int $id): void
     {
-        if (!$this->checklistId) {
+        if (! $this->checklistId) {
             return;
         }
         $item = AssetGuardInspectionChecklistItem::query()
@@ -100,21 +102,23 @@ class ChecklistItemsPanel extends Component
             $max = $itemData['max_value'];
             if ($min !== null && $max !== null && (float) $min > (float) $max) {
                 $this->addError('itemForm.min_value', '下限は上限以下にしてください。');
+
                 return;
             }
         }
 
         $targetChecklistId = $itemData['checklist_id'] ?? $this->checklistId;
 
-        if (!$targetChecklistId) {
+        if (! $targetChecklistId) {
             $this->dispatch('notify', body: '点検票を選択してください');
+
             return;
         }
 
         $payload = $itemData;
         $payload['checklist_id'] = (int) $targetChecklistId;
 
-        if (!empty($payload['id'])) {
+        if (! empty($payload['id'])) {
             $item = AssetGuardInspectionChecklistItem::query()
                 ->where('checklist_id', $targetChecklistId)
                 ->findOrFail((int) $payload['id']);
@@ -137,7 +141,7 @@ class ChecklistItemsPanel extends Component
 
     public function deleteItem(int $id): void
     {
-        if (!$this->checklistId) {
+        if (! $this->checklistId) {
             return;
         }
         AssetGuardInspectionChecklistItem::query()
@@ -150,7 +154,7 @@ class ChecklistItemsPanel extends Component
 
     public function deleteReferencePhoto(int $mediaId): void
     {
-        if (!$this->itemForm['id']) {
+        if (! $this->itemForm['id']) {
             return;
         }
         $item = AssetGuardInspectionChecklistItem::query()
@@ -172,7 +176,7 @@ class ChecklistItemsPanel extends Component
     #[On('checklist-deleted')]
     public function refreshChecklists(): void
     {
-        if ($this->checklistId && !$this->getChecklistsProperty()->firstWhere('id', $this->checklistId)) {
+        if ($this->checklistId && ! $this->getChecklistsProperty()->firstWhere('id', $this->checklistId)) {
             $this->checklistId = null;
         }
 

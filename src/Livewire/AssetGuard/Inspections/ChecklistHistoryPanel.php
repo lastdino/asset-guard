@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Illuminate\Support\Collection;
-use Livewire\Component;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
+use Livewire\Component;
 
 class ChecklistHistoryPanel extends Component
 {

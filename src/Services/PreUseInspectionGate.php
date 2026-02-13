@@ -5,17 +5,27 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Services;
 
 use Illuminate\Support\Carbon;
+use Lastdino\AssetGuard\Models\AssetGuardAsset as Asset;
 use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist as Checklist;
-use Lastdino\AssetGuard\Models\AssetGuardAsset as Asset;
 
 class PreUseInspectionGate
 {
-    public function __construct(public int $assetId) { }
+    public function __construct(public int $assetId) {}
 
     public function isInspectionRequired(): bool
     {
-        $assetTypeId = Asset::query()->whereKey($this->assetId)->value('asset_type_id');
+        $asset = Asset::query()->find($this->assetId);
+        if (! $asset) {
+            return false;
+        }
+
+        // 停止中なら点検不要（将来的に稼働ログベースで判断）
+        if ($asset->operating_status !== 'running') {
+            return false;
+        }
+
+        $assetTypeId = $asset->asset_type_id;
 
         $checklists = Checklist::query()
             ->where('require_before_activation', true)
@@ -23,10 +33,10 @@ class PreUseInspectionGate
             ->where(function ($q) use ($assetTypeId) {
                 $q->where(function ($q) use ($assetTypeId) {
                     $q->where('applies_to', 'asset_type')
-                      ->when($assetTypeId, fn ($q) => $q->where('asset_type_id', $assetTypeId));
+                        ->when($assetTypeId, fn ($q) => $q->where('asset_type_id', $assetTypeId));
                 })->orWhere(function ($q) {
                     $q->where('applies_to', 'asset')
-                      ->where('asset_id', $this->assetId);
+                        ->where('asset_id', $this->assetId);
                 });
             })
             ->get(['id']);

@@ -14,7 +14,7 @@ class AssetGuardInspectionItemResult extends Model implements HasMedia
     use InteractsWithMedia;
 
     protected $fillable = [
-        'inspection_id', 'checklist_item_id', 'result', 'value', 'note', 'is_draft'
+        'inspection_id', 'checklist_item_id', 'result', 'value', 'note', 'is_draft',
     ];
 
     protected function casts(): array

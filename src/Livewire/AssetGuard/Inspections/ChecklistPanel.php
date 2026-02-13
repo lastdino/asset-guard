@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
-use Livewire\Component;
+use Lastdino\AssetGuard\Models\AssetGuardAsset;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 use Livewire\Attributes\On;
-use Lastdino\AssetGuard\Models\{AssetGuardAsset, AssetGuardInspectionChecklist, AssetGuardMaintenancePlan as Plan};
+use Livewire\Component;
 
 class ChecklistPanel extends Component
 {
@@ -32,14 +34,14 @@ class ChecklistPanel extends Component
     protected function rules(): array
     {
         return [
-            'form.id' => ['nullable','integer'],
-            'form.name' => ['required','string','max:255'],
-            'form.applies_to' => ['required','in:asset,type'],
-            'form.active' => ['required','boolean'],
+            'form.id' => ['nullable', 'integer'],
+            'form.name' => ['required', 'string', 'max:255'],
+            'form.applies_to' => ['required', 'in:asset,type'],
+            'form.active' => ['required', 'boolean'],
             // Include PerUse and allow frequency_value to be optional when PerUse is selected
-            'form.frequency_unit' => ['required','in:OneTime,PerUse,Daily,Weekly,Monthly,Quarterly,SemiAnnual,Annual,Custom'],
-            'form.frequency_value' => ['required_unless:form.frequency_unit,PerUse','integer','min:1','max:365'],
-            'form.require_before_activation' => ['required','boolean'],
+            'form.frequency_unit' => ['required', 'in:OneTime,PerUse,Daily,Weekly,Monthly,Quarterly,SemiAnnual,Annual,Custom'],
+            'form.frequency_value' => ['required_unless:form.frequency_unit,PerUse', 'integer', 'min:1', 'max:365'],
+            'form.require_before_activation' => ['required', 'boolean'],
         ];
     }
 
@@ -89,7 +91,7 @@ class ChecklistPanel extends Component
             'require_before_activation' => (bool) $data['require_before_activation'],
         ];
 
-        if (!empty($data['id'])) {
+        if (! empty($data['id'])) {
             $cl = AssetGuardInspectionChecklist::query()
                 ->where('asset_id', $this->assetId)
                 ->findOrFail((int) $data['id']);
@@ -143,6 +145,7 @@ class ChecklistPanel extends Component
         // If checklist is inactive, archive any existing Scheduled plans for this checklist on this asset
         if (! (bool) $cl->active) {
             $this->removePlanForChecklist($cl);
+
             return;
         }
 
@@ -158,6 +161,7 @@ class ChecklistPanel extends Component
         if ($isPerUse) {
             // Per-use: archive any Scheduled plans (we don't keep plans for per-use)
             $existing->each(fn ($p) => $p->update(['status' => 'Archived']));
+
             return;
         }
 
@@ -173,6 +177,7 @@ class ChecklistPanel extends Component
                 $payload['scheduled_at'] = now();
             }
             $current->update($payload);
+
             return;
         }
 

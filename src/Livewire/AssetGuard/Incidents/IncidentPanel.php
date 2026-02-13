@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Incidents;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Lastdino\AssetGuard\Models\AssetGuardIncident;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Lastdino\AssetGuard\Models\AssetGuardIncident;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class IncidentPanel extends Component
 {
@@ -42,14 +42,14 @@ class IncidentPanel extends Component
     protected function rules(): array
     {
         return [
-            'form.occurred_at' => ['required','date'],
-            'form.assignee_id' => ['nullable','integer','exists:users,id'],
-            'form.event' => ['required','string','max:2000'],
-            'form.actions' => ['nullable','string','max:5000','required_if:form.status,Completed'],
-            'form.status' => ['required','in:Waiting,InProgress,Completed'],
-            'form.severity' => ['required','in:Low,Medium,High,Critical'],
-            'files' => ['nullable','array','max:10'],
-            'files.*' => ['file','max:20480','mimetypes:image/jpeg,image/png,application/pdf,text/plain,application/zip'],
+            'form.occurred_at' => ['required', 'date'],
+            'form.assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'form.event' => ['required', 'string', 'max:2000'],
+            'form.actions' => ['nullable', 'string', 'max:5000', 'required_if:form.status,Completed'],
+            'form.status' => ['required', 'in:Waiting,InProgress,Completed'],
+            'form.severity' => ['required', 'in:Low,Medium,High,Critical'],
+            'files' => ['nullable', 'array', 'max:10'],
+            'files.*' => ['file', 'max:20480', 'mimetypes:image/jpeg,image/png,application/pdf,text/plain,application/zip'],
         ];
     }
 
@@ -143,7 +143,7 @@ class IncidentPanel extends Component
 
             $model = $media->model;
 
-            if (!($model instanceof AssetGuardIncident)) {
+            if (! ($model instanceof AssetGuardIncident)) {
                 return;
             }
 

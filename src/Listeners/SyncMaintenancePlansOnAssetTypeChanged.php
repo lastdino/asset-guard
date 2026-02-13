@@ -11,7 +11,6 @@ use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan as Plan;
 
 class SyncMaintenancePlansOnAssetTypeChanged implements ShouldQueue
 {
-
     public function handle(AssetTypeChanged $event): void
     {
         $this->cancelOldTypePlans($event->assetId, $event->oldTypeId);
@@ -28,7 +27,7 @@ class SyncMaintenancePlansOnAssetTypeChanged implements ShouldQueue
             ->where('asset_id', $assetId)
             ->whereHas('checklist', function ($q) use ($oldTypeId) {
                 $q->where('applies_to', 'asset_type')
-                  ->where('asset_type_id', $oldTypeId);
+                    ->where('asset_type_id', $oldTypeId);
             })
             ->get();
 

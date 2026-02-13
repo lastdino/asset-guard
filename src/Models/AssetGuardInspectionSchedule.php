@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AssetGuardInspectionSchedule extends Model
 {
     protected $fillable = [
-        'asset_id', 'checklist_item_id', 'due_date', 'last_done_at', 'status'
+        'asset_id', 'checklist_item_id', 'due_date', 'last_done_at', 'status',
     ];
 
     protected function casts(): array

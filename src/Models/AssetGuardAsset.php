@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Lastdino\AssetGuard\Observers\AssetGuardAssetObserver;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\Image\Enums\Fit;
 
 #[ObservedBy([AssetGuardAssetObserver::class])]
 class AssetGuardAsset extends Model implements HasMedia
@@ -22,6 +22,7 @@ class AssetGuardAsset extends Model implements HasMedia
             }
         });
     }
+
     use InteractsWithMedia;
 
     protected $fillable = [
@@ -81,6 +82,21 @@ class AssetGuardAsset extends Model implements HasMedia
     public function incidents(): HasMany
     {
         return $this->hasMany(AssetGuardIncident::class, 'asset_id')->latest('occurred_at');
+    }
+
+    public function operatingLogs(): HasMany
+    {
+        return $this->hasMany(AssetGuardOperatingLog::class, 'asset_id');
+    }
+
+    public function currentOperatingLog(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(AssetGuardOperatingLog::class, 'asset_id')->whereNull('ended_at');
+    }
+
+    public function getOperatingStatusAttribute(): string
+    {
+        return $this->currentOperatingLog?->status ?? 'stopped';
     }
 
     public function registerMediaCollections(): void

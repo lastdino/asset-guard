@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Services\Inspections;
 
 use Illuminate\Support\Carbon;
-use Lastdino\AssetGuard\Models\{AssetGuardInspection, AssetGuardInspectionItemResult, AssetGuardInspectionChecklist, AssetGuardInspectionChecklistItem, AssetGuardMaintenancePlan};
+use Lastdino\AssetGuard\Models\AssetGuardInspection;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionItemResult;
+use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 
 final class InspectionDraftService
 {
@@ -21,7 +24,7 @@ final class InspectionDraftService
         ]);
 
         $inspection->update(['performed_by_user_id' => $inspectorId]);
-        $sync = collect($assistantIds)->unique()->values()->mapWithKeys(static fn($id) => [$id => ['role' => 'Assistant']])->all();
+        $sync = collect($assistantIds)->unique()->values()->mapWithKeys(static fn ($id) => [$id => ['role' => 'Assistant']])->all();
         $inspection->inspectors()->sync($sync + [
             $inspectorId => ['role' => 'Primary'],
         ]);
@@ -31,7 +34,8 @@ final class InspectionDraftService
 
     /**
      * Prefill a batch-like forms array from existing draft.
-     * @param array<int, array<string, mixed>> $forms In/out parameter by reference
+     *
+     * @param  array<int, array<string, mixed>>  $forms  In/out parameter by reference
      */
     public function hydrateDraftBatch(int $assetId, int $checklistId, array &$forms, ?int &$inspectorId = null, ?array &$coInspectorIds = null): void
     {
@@ -41,7 +45,9 @@ final class InspectionDraftService
             ->where('status', 'Draft')
             ->latest('id')
             ->first();
-        if (!$draft) { return; }
+        if (! $draft) {
+            return;
+        }
 
         if ($inspectorId !== null) {
             $inspectorId = $draft->performed_by_user_id ?: $inspectorId;
@@ -52,7 +58,9 @@ final class InspectionDraftService
 
         $existing = AssetGuardInspectionItemResult::query()->where('inspection_id', $draft->id)->get();
         foreach ($existing as $res) {
-            if (!isset($forms[$res->checklist_item_id])) { continue; }
+            if (! isset($forms[$res->checklist_item_id])) {
+                continue;
+            }
             $method = $forms[$res->checklist_item_id]['method'] ?? null;
             $forms[$res->checklist_item_id]['note'] = $res->note;
             if ($method === 'boolean') {
@@ -69,16 +77,17 @@ final class InspectionDraftService
 
     /**
      * Build initial forms from a checklist (ordered) for pre-use/ad-hoc.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function buildFormsForChecklist(int $checklistId, ChecklistOptionsService $options): array
     {
         $forms = [];
         $checklist = AssetGuardInspectionChecklist::query()
-            ->with(['items' => fn($q) => $q->orderBy('sort_order')->orderBy('id')])
+            ->with(['items' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
             ->find($checklistId);
 
-        if (!$checklist) {
+        if (! $checklist) {
             return [];
         }
 
@@ -95,23 +104,25 @@ final class InspectionDraftService
                 'max' => $item->max_value,
                 'options' => $options->extract($item),
                 'media' => $item->getMedia('reference_photos')
-                    ->map(static fn($m) => [
+                    ->map(static fn ($m) => [
                         'id' => $m->id,
                         'file_name' => $m->file_name,
                     ])->all(),
             ];
         }
+
         return $forms;
     }
 
     /**
      * Build initial forms from a plan's checklist (ordered) for batch mode.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function buildFormsForPlan(int $planId, ChecklistOptionsService $options, ?int &$assetId = null, ?int &$checklistId = null): array
     {
         $plan = AssetGuardMaintenancePlan::query()->with('checklist.items', 'asset')->find($planId);
-        if (!$plan) {
+        if (! $plan) {
             return [];
         }
         $forms = [];
@@ -129,14 +140,19 @@ final class InspectionDraftService
                 'max' => $item->max_value,
                 'options' => $options->extract($item),
                 'media' => $item->getMedia('reference_photos')
-                    ->map(static fn($m) => [
+                    ->map(static fn ($m) => [
                         'id' => $m->id,
                         'file_name' => $m->file_name,
                     ])->all(),
             ];
         }
-        if ($assetId !== null) { $assetId = (int) $plan->asset_id; }
-        if ($checklistId !== null) { $checklistId = (int) ($plan->checklist?->id); }
+        if ($assetId !== null) {
+            $assetId = (int) $plan->asset_id;
+        }
+        if ($checklistId !== null) {
+            $checklistId = (int) ($plan->checklist?->id);
+        }
+
         return $forms;
     }
 }

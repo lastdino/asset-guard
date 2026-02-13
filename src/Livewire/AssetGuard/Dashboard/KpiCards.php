@@ -123,8 +123,12 @@ class KpiCards extends Component
             }
         }
 
+        // 'stopped' は AssetGuardAsset の status ではなく、稼働ログに基づく current operating status でカウント
         $this->downAssets = AssetGuardAsset::query()
-            ->where('status', 'stopped')
+            ->whereHas('currentOperatingLog', function ($q) {
+                $q->where('status', 'stopped');
+            })
+            ->orWhereDoesntHave('currentOperatingLog') // ログがない場合も停止扱い
             ->count();
     }
 

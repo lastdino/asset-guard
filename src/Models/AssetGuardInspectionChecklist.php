@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssetGuardInspectionChecklist extends Model
 {
-    protected $fillable = ['name','applies_to','asset_id','asset_type_id','active','frequency_unit','frequency_value','require_before_activation'];
+    protected $fillable = ['name', 'applies_to', 'asset_id', 'asset_type_id', 'active', 'frequency_unit', 'frequency_value', 'require_before_activation'];
 
     protected function casts(): array
     {

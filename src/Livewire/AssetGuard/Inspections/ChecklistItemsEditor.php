@@ -7,7 +7,8 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View as IlluminateView;
-use Lastdino\AssetGuard\Models\{AssetGuardInspectionChecklist as Checklist, AssetGuardInspectionChecklistItem as Item};
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklist as Checklist;
+use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem as Item;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -83,12 +84,12 @@ class ChecklistItemsEditor extends Component
             return;
         }
         $rules = [
-            'form.name' => ['required','string','max:255'],
-            'form.method' => ['required', Rule::in(['text','number','select','boolean'])],
-            'form.pass_condition' => ['nullable','array'],
-            'form.min_value' => ['nullable','numeric'],
-            'form.max_value' => ['nullable','numeric'],
-            'form.sort_order' => ['required','integer','min:0','max:65535'],
+            'form.name' => ['required', 'string', 'max:255'],
+            'form.method' => ['required', Rule::in(['text', 'number', 'select', 'boolean'])],
+            'form.pass_condition' => ['nullable', 'array'],
+            'form.min_value' => ['nullable', 'numeric'],
+            'form.max_value' => ['nullable', 'numeric'],
+            'form.sort_order' => ['required', 'integer', 'min:0', 'max:65535'],
         ];
 
         $validated = $this->validate($rules, [], [

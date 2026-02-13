@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
 use Illuminate\Support\Carbon;
-use Lastdino\AssetGuard\Models\AssetGuardInspection;
-use Lastdino\AssetGuard\Models\AssetGuardInspectionItemResult;
 // use Lastdino\AssetGuard\Models\AssetGuardMaintenanceOccurrence as Occurrence;
 use Lastdino\AssetGuard\Models\AssetGuardMaintenancePlan;
 use Livewire\Component;
@@ -20,7 +18,8 @@ class Index extends Component
         $this->assetId = $assetId;
     }
 
-    public function getDuePlansProperty(){
+    public function getDuePlansProperty()
+    {
         return AssetGuardMaintenancePlan::query()
             ->where('asset_id', $this->assetId)
             ->with(['asset', 'checklist'])
@@ -30,7 +29,6 @@ class Index extends Component
             ->limit(100)
             ->get();
     }
-
 
     public function render()
     {

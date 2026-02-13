@@ -6,10 +6,9 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\AssetTypes;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\View\View as IlluminateView;
-use Illuminate\Validation\Rule;
 use Lastdino\AssetGuard\Models\AssetGuardAssetType as AssetType;
-use Livewire\WithPagination;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Index extends Component
 {
@@ -99,6 +98,7 @@ class Index extends Component
         $type = AssetType::query()->withCount('assets')->findOrFail($id);
         if ($type->assets_count > 0) {
             $this->addError('delete', __('asset-guard::validation.custom.cannot_delete_in_use'));
+
             return;
         }
 
@@ -110,7 +110,7 @@ class Index extends Component
     {
         return AssetType::query()
             ->withCount('assets')
-            ->when($this->search !== '', fn($q) => $q->where('name', 'like', "%{$this->search}%"))
+            ->when($this->search !== '', fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->paginate(10);

@@ -17,6 +17,7 @@ use Lastdino\AssetGuard\Services\Inspections\ChecklistOptionsService;
 use Lastdino\AssetGuard\Services\Inspections\InspectionDraftService;
 use Lastdino\AssetGuard\Services\Inspections\InspectionOutcomeService;
 use Lastdino\AssetGuard\Services\InspectionScheduleCalculator;
+use Lastdino\AssetGuard\Services\OperatingStatusService;
 use Lastdino\AssetGuard\Services\PreUseInspectionGate;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -400,6 +401,14 @@ class PerformerUnified extends Component
         $performedAt = $this->mode === 'monthly' && $this->date ? Carbon::parse($this->date)->startOfDay() : Carbon::now();
         $inspection->update(['status' => 'Completed', 'performed_at' => $performedAt]);
 
+        // 点検が完了したら、自動的に「稼働中」にする（手動・月次以外の場合など）
+        if ($this->assetId) {
+            $asset = AssetGuardAsset::find($this->assetId);
+            if ($asset) {
+                app(OperatingStatusService::class)->setStatus($asset, 'running', $performedAt);
+            }
+        }
+
         // Plan handling after completion
         if ($this->planId) {
             $plan = AssetGuardMaintenancePlan::query()->with('checklist')->find($this->planId);
@@ -414,7 +423,8 @@ class PerformerUnified extends Component
                 $isPerUse = ($cl && (bool) ($cl->require_before_activation ?? false));
                 if (! $isPerUse && $cl && $cl->frequency_unit) {
                     $mult = max(1, (int) ($cl->frequency_value ?? 1));
-                    $base = Carbon::parse($plan->scheduled_at ?? Carbon::now());
+                    // 点検実施日（今日）を基準日とする
+                    $base = Carbon::now();
                     $next = InspectionScheduleCalculator::nextDueDate($cl->frequency_unit, $mult, $base);
                     if ($next) {
                         if ($this->mode === 'plan-batch') {

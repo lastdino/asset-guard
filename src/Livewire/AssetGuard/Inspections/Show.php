@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Lastdino\AssetGuard\Livewire\AssetGuard\Inspections;
 
+use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Lastdino\AssetGuard\Models\AssetGuardInspection;
 
 class Show extends Component
 {

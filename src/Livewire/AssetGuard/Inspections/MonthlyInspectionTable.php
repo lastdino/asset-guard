@@ -9,15 +9,14 @@ use Illuminate\Support\Collection;
 use Lastdino\AssetGuard\Models\AssetGuardAsset;
 use Lastdino\AssetGuard\Models\AssetGuardInspection;
 use Lastdino\AssetGuard\Models\AssetGuardInspectionChecklistItem;
-use Lastdino\AssetGuard\Models\AssetGuardInspectionItemResult;
+use Lastdino\AssetGuard\Services\OperatingStatusService;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class MonthlyInspectionTable extends Component
 {
     public int $assetId;
+
     public string $yearMonth;
 
     public function mount(int $assetId, ?string $yearMonth = null): void
@@ -107,6 +106,33 @@ class MonthlyInspectionTable extends Component
         }
 
         return $matrix;
+    }
+
+    public function getOperatingStatusesProperty(): array
+    {
+        $startOfMonth = Carbon::parse($this->yearMonth)->startOfMonth();
+        $endOfMonth = Carbon::parse($this->yearMonth)->endOfMonth();
+        $service = app(OperatingStatusService::class);
+        $asset = $this->asset;
+
+        $statuses = [];
+        for ($day = 1; $day <= $this->daysInMonth; $day++) {
+            $date = $startOfMonth->copy()->day($day);
+            $statuses[$day] = $service->getStatusForDate($asset, $date);
+        }
+
+        return $statuses;
+    }
+
+    public function toggleOperatingStatus(int $day): void
+    {
+        $date = Carbon::parse($this->yearMonth)->day($day);
+        $asset = $this->asset;
+
+        // その日の終わりの時刻でステータスを切り替える（簡略化のため）
+        app(OperatingStatusService::class)->toggleStatus($asset, $date->endOfDay());
+
+        $this->dispatch('refreshTable');
     }
 
     public function openEntryModal(int $itemId, int $day): void

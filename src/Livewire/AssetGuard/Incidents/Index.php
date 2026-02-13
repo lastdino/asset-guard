@@ -5,26 +5,33 @@ namespace Lastdino\AssetGuard\Livewire\AssetGuard\Incidents;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Lastdino\AssetGuard\Models\AssetGuardIncident as Incident;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public int $perPage = 10;
+
     public string $search = '';
+
     public ?string $status = null;    // Waiting, InProgress, Completed
+
     public ?string $severity = null;  // Low, Medium, High, Critical
+
     public ?string $assetName = null; // filter by asset name
+
     public ?string $assetCode = null; // filter by asset code
+
     public string $sortField = 'occurred_at';
+
     public string $sortDir = 'desc';
 
     public bool $showViewModal = false;
+
     public bool $showEditModal = false;
 
     public ?int $selectedId = null;
@@ -41,11 +48,30 @@ class Index extends Component
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $files = [];
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingStatus(): void { $this->resetPage(); }
-    public function updatingSeverity(): void { $this->resetPage(); }
-    public function updatingAssetName(): void { $this->resetPage(); }
-    public function updatingAssetCode(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSeverity(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingAssetName(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingAssetCode(): void
+    {
+        $this->resetPage();
+    }
 
     public function sortBy(string $field): void
     {
@@ -66,12 +92,12 @@ class Index extends Component
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($qq) {
                     $qq->where('event', 'like', "%{$this->search}%")
-                       ->orWhere('assignee_name', 'like', "%{$this->search}%")
-                       ->orWhere('id', $this->search);
+                        ->orWhere('assignee_name', 'like', "%{$this->search}%")
+                        ->orWhere('id', $this->search);
                 });
             })
-            ->when($this->status, fn($q) => $q->where('status', $this->status))
-            ->when($this->severity, fn($q) => $q->where('severity', $this->severity))
+            ->when($this->status, fn ($q) => $q->where('status', $this->status))
+            ->when($this->severity, fn ($q) => $q->where('severity', $this->severity))
             ->when($this->assetName !== null && $this->assetName !== '', function ($q) {
                 $q->whereHas('asset', function ($qa) {
                     $qa->where('name', 'like', "%{$this->assetName}%");
@@ -111,7 +137,9 @@ class Index extends Component
 
     public function save(): void
     {
-        if (! $this->selectedId) { return; }
+        if (! $this->selectedId) {
+            return;
+        }
         $incident = Incident::query()->findOrFail($this->selectedId);
 
         $validated = validator($this->form, [
@@ -133,7 +161,7 @@ class Index extends Component
         ])->save();
 
         // Validate and save attachments if provided
-        if (!empty($this->files)) {
+        if (! empty($this->files)) {
             validator(['files' => $this->files], [
                 'files' => ['array', 'max:10'],
                 'files.*' => ['file', 'max:20480', 'mimetypes:image/jpeg,image/png,application/pdf,text/plain,application/zip'],

@@ -22,9 +22,11 @@ class Index extends Component
 
     // Modal state
     public bool $showPlan = false;
+
     public bool $showShow = false;
 
     public ?int $viewingListId = null;
+
     public ?int $editingPlanId = null;
 
     public $infos;
@@ -34,6 +36,7 @@ class Index extends Component
 
     // Integrated edit/create form state
     public ?AssetGuardMaintenancePlan $editingPlan = null;
+
     public array $form = [
         'asset_id' => null,
         'checklist_id' => null,
@@ -49,7 +52,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        //$this->loadCalendar();
+        // $this->loadCalendar();
     }
 
     #[On('calendar-dropped')]
@@ -75,10 +78,10 @@ class Index extends Component
         }
 
         $this->infos = $info;
-        $query = AssetGuardMaintenancePlan::query()->with([ 'asset'])
+        $query = AssetGuardMaintenancePlan::query()->with(['asset'])
             ->whereBetween('scheduled_at', [$info['start'], $info['end']])
             ->whereNotIn('status', ['Completed', 'Cancelled', 'Archived', 'Finished'])
-            ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId));
+            ->when($this->assetId, fn ($q) => $q->where('asset_id', $this->assetId));
 
         $this->events = $query->latest('scheduled_at')->limit(500)->get()->map(function ($o): array {
             return [
@@ -86,7 +89,7 @@ class Index extends Component
                 'title' => optional($o->asset)->name.' · '.($o->title ?? 'Plan'),
                 'start' => $o->scheduled_at?->toIso8601String(),
                 // Keep URL for non-JS fallback
-                //'url' => route('asset-guard.maintenance-plans.show', $o->maintenance_plan_id),
+                // 'url' => route('asset-guard.maintenance-plans.show', $o->maintenance_plan_id),
                 // Provide planId to open modal
                 'planId' => $o->id,
             ];
@@ -95,7 +98,6 @@ class Index extends Component
         return $this->events;
 
     }
-
 
     // 追加: 設備フィルタが変わったら自動で再取得
     public function updatedAssetId(): void
@@ -120,9 +122,9 @@ class Index extends Component
             // 使用前点検は保全計画のチェックリスト選択には表示しない
             ->where(function ($q) {
                 $q->whereNull('require_before_activation')
-                  ->orWhere('require_before_activation', false);
+                    ->orWhere('require_before_activation', false);
             })
-            ->where(function ($query) use ($targetAssetId)  {
+            ->where(function ($query) use ($targetAssetId) {
                 $query->when($targetAssetId, function ($q) use ($targetAssetId) {
                     $q->where('asset_id', $targetAssetId)
                         ->orWhereExists(function ($subquery) use ($targetAssetId) {
@@ -158,7 +160,6 @@ class Index extends Component
             ])
             ->findOrFail($listId);
 
-
         $this->showShow = true;
     }
 
@@ -166,7 +167,7 @@ class Index extends Component
     {
         $this->editingPlanId = null;
 
-        $this->form =  [
+        $this->form = [
             'asset_id' => $this->assetId,
             'checklist_id' => $this->viewingListId,
             'title' => '',
@@ -188,7 +189,7 @@ class Index extends Component
         $this->editingPlanId = $planId;
         $this->editingPlan = $model;
 
-        $this->form =  [
+        $this->form = [
             'asset_id' => $model->asset_id,
             'checklist_id' => $model->checklist_id,
             'title' => (string) ($model->title ?? ''),
@@ -234,7 +235,7 @@ class Index extends Component
             'form.asset_id' => ['required', Rule::exists('asset_guard_assets', 'id')],
             'form.checklist_id' => [
                 'required',
-                Rule::exists('asset_guard_inspection_checklists', 'id')
+                Rule::exists('asset_guard_inspection_checklists', 'id'),
             ],
             'form.title' => ['nullable', 'string', 'max:255'],
             'form.description' => ['nullable', 'string'],
@@ -247,6 +248,7 @@ class Index extends Component
                         return true; // checklist required above, but defend anyway
                     }
                     $cl = AssetGuardInspectionChecklist::find($cid);
+
                     // Require start_date unless checklist frequency is PerUse
                     return ! ($cl && $cl->frequency_unit === 'PerUse');
                 }),
@@ -264,8 +266,8 @@ class Index extends Component
     {
         $this->validate();
         // Auto-generate title
-        $this->form['title'] = $this->form['scheduled_at']."/".$this->form['assigned_to'];
-        AssetGuardMaintenancePlan::updateOrCreate(['id'=>$this->editingPlanId],$this->form);
+        $this->form['title'] = $this->form['scheduled_at'].'/'.$this->form['assigned_to'];
+        AssetGuardMaintenancePlan::updateOrCreate(['id' => $this->editingPlanId], $this->form);
 
         if ($this->viewingListId) {
             $this->openShow($this->viewingListId);
@@ -277,7 +279,7 @@ class Index extends Component
     public function getAssetsProperty()
     {
         return AssetGuardAsset::query()
-            ->when(! empty($this->form['asset_id']), fn($q) => $q->where('id', $this->form['asset_id']))
+            ->when(! empty($this->form['asset_id']), fn ($q) => $q->where('id', $this->form['asset_id']))
             ->orderBy('name')
             ->get(['id', 'name']);
     }
@@ -292,7 +294,7 @@ class Index extends Component
 
     public function closeModals(): void
     {
-        $this->reset(['showPlan','showShow', 'viewingListId', 'editingPlanId', 'viewingList', 'editingPlan']);
+        $this->reset(['showPlan', 'showShow', 'viewingListId', 'editingPlanId', 'viewingList', 'editingPlan']);
     }
 
     public function render()

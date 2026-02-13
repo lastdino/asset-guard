@@ -6,13 +6,13 @@ namespace Lastdino\AssetGuard\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssetGuardInspection extends Model
 {
     protected $fillable = [
-        'asset_id', 'performed_by_user_id', 'performed_at', 'status', 'checklist_id'
+        'asset_id', 'performed_by_user_id', 'performed_at', 'status', 'checklist_id',
     ];
 
     protected function casts(): array
