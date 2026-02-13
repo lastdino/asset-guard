@@ -128,9 +128,12 @@ class MonthlyInspectionTable extends Component
     {
         $date = Carbon::parse($this->yearMonth)->day($day);
         $asset = $this->asset;
+        $service = app(OperatingStatusService::class);
 
-        // その日の終わりの時刻でステータスを切り替える（簡略化のため）
-        app(OperatingStatusService::class)->toggleStatus($asset, $date->endOfDay());
+        $currentStatusForDay = $service->getStatusForDate($asset, $date);
+        $newStatus = $currentStatusForDay === 'running' ? 'stopped' : 'running';
+
+        $service->setStatusForDay($asset, $date, $newStatus);
 
         $this->dispatch('refreshTable');
     }

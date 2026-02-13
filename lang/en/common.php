@@ -30,4 +30,11 @@ return [
     'upcoming' => 'Upcoming',
     'no_data' => 'No data available',
     'confirm' => 'Confirm',
+    'asset_code' => 'Asset Code',
+    'asset_name' => 'Asset Name',
+    'location' => 'Location',
+    'asset_type' => 'Asset Type',
+    'action' => 'Action',
+    'inspect' => 'Inspect',
+    'no_running_uninspected_assets' => 'No running uninspected assets found.',
 ];

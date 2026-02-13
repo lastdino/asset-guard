@@ -35,6 +35,17 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div class="xl:col-span-2 space-y-3">
+            <div class="rounded border p-3 bg-white dark:bg-zinc-900 border-red-200 dark:border-red-900">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="font-medium flex items-center gap-2">
+                        <flux:icon icon="bolt" variant="micro" class="text-amber-500" />
+                        要点検：稼働中アセット
+                    </div>
+                    <flux:button variant="ghost" wire:click="$refresh">更新</flux:button>
+                </div>
+                @livewire('Lastdino\\AssetGuard\\Livewire\\AssetGuard\\Dashboard\\RunningUninspectedAssets')
+            </div>
+
             <div class="rounded border p-3 bg-white dark:bg-zinc-900">
                 <div class="flex items-center justify-between mb-2">
                     <div class="font-medium">期限間近/超過 点検</div>

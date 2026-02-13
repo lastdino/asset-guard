@@ -30,4 +30,11 @@ return [
     'upcoming' => '予定',
     'no_data' => 'データがありません',
     'confirm' => '確定',
+    'asset_code' => '設備コード',
+    'asset_name' => '設備名',
+    'location' => '設置場所',
+    'asset_type' => '資産タイプ',
+    'action' => '操作',
+    'inspect' => '点検実施',
+    'no_running_uninspected_assets' => '現在稼働中かつ未点検の設備はありません。',
 ];
