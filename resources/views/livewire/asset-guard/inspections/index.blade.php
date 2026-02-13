@@ -1,6 +1,14 @@
 <div class="grid gap-4">
     <div class="flex items-center justify-between">
         <flux:heading size="md">{{ __('asset-guard::inspections.heading') }}</flux:heading>
+        <flux:button
+            size="xs"
+            variant="subtle"
+            icon="table-cells"
+            :href="route(config('asset-guard.routes.prefix').'.assets.monthly-inspections', ['assetId' => $assetId])"
+        >
+            {{ __('asset-guard::quick_inspection.view_monthly') }}
+        </flux:button>
     </div>
 
     <div class="grid gap-2">

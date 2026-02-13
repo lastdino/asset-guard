@@ -29,12 +29,6 @@
             @if ($message)
                 <div class="text-sm text-red-600">{{ $message }}</div>
             @endif
-
-            @if ($foundAssetId)
-                <div class="text-sm text-neutral-600 dark:text-neutral-300">
-                    {{ __('asset-guard::quick_inspection.asset_found') }}: #{{ $foundAssetId }}
-                </div>
-            @endif
         </div>
     @else
         <div class="space-y-4">
@@ -65,9 +59,23 @@
     @livewire(\Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\PerformerUnified::class)
 
     <flux:modal wire:model="showStartModal">
-        <flux:heading size="md">{{ __('asset-guard::inspections.start_inspection') }}</flux:heading>
+        <div class="flex items-center justify-between">
+            <flux:heading size="md">{{ __('asset-guard::inspections.start_inspection') }}</flux:heading>
+            @if ($foundAssetId)
+                <flux:button variant="subtle" size="sm" icon="table-cells" :href="route(config('asset-guard.routes.prefix').'.assets.monthly-inspections', ['assetId' => $foundAssetId])">
+                    {{ __('asset-guard::quick_inspection.view_monthly') }}
+                </flux:button>
+            @endif
+        </div>
+
         <div class="space-y-6">
             <div class="bg-white dark:bg-neutral-900 rounded p-4 space-y-3">
+                @if ($foundAssetId)
+                    <div class="text-sm text-neutral-600 dark:text-neutral-300">
+                        {{ __('asset-guard::quick_inspection.asset_found') }}: #{{ $foundAssetId }}
+                    </div>
+                @endif
+
                 @if ($pendingOccurrenceId)
                     <div class="rounded border p-3 text-sm dark:border-neutral-700">
                         <div class="font-medium mb-1">{{ __('asset-guard::inspections.scheduled_exists') }}</div>

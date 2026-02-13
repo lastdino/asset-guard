@@ -7,4 +7,5 @@ return [
     'search_and_open' => 'Search & Open',
     'asset_found' => 'Asset found',
     'no_plan' => 'No selectable checklist or plan found.',
+    'view_monthly' => 'View Monthly Table',
 ];

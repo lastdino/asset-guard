@@ -53,6 +53,8 @@
                 }
                 .bg-green-50 { background-color: #f0fdf4 !important; }
                 .bg-red-50 { background-color: #fef2f2 !important; }
+                .bg-blue-50\/50 { background-color: #eff6ff !important; }
+                .bg-red-50\/50 { background-color: #fef2f2 !important; }
                 .ring-red-500 {
                     box-shadow: inset 0 0 0 2px #ef4444 !important;
                 }
@@ -65,7 +67,17 @@
                         点検項目
                     </th>
                     @for ($day = 1; $day <= $this->daysInMonth; $day++)
-                        <th scope="col" class="px-2 py-3.5 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 min-w-[3rem] border-r print:min-w-0 print:px-0">
+                        @php
+                            $date = \Illuminate\Support\Carbon::parse($this->yearMonth)->day($day);
+                            $isSaturday = $date->isSaturday();
+                            $isSunday = $date->isSunday();
+                            $dayColorClass = match(true) {
+                                $isSaturday => 'bg-blue-50/50 dark:bg-blue-900/20',
+                                $isSunday => 'bg-red-50/50 dark:bg-red-900/20',
+                                default => ''
+                            };
+                        @endphp
+                        <th scope="col" class="px-2 py-3.5 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 min-w-[3rem] border-r print:min-w-0 print:px-0 {{ $dayColorClass }}">
                             {{ $day }}
                         </th>
                     @endfor
@@ -85,13 +97,20 @@
                             </td>
                             @for ($day = 1; $day <= $this->daysInMonth; $day++)
                                 @php
+                                    $date = \Illuminate\Support\Carbon::parse($this->yearMonth)->day($day);
+                                    $isSaturday = $date->isSaturday();
+                                    $isSunday = $date->isSunday();
                                     $result = $this->results[$item->id][$day] ?? null;
                                     $isScheduled = $this->schedules[$checklist->id][$day] ?? false;
                                     $colorClass = match($result['result'] ?? '') {
                                         'pass' => 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300',
                                         'fail' => 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300',
                                         'na' => 'bg-zinc-50 dark:bg-zinc-800 text-zinc-500',
-                                        default => 'hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer'
+                                        default => match(true) {
+                                            $isSaturday => 'bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 cursor-pointer',
+                                            $isSunday => 'bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/30 cursor-pointer',
+                                            default => 'hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer'
+                                        }
                                     };
                                     $borderClass = $isScheduled ? 'ring-2 ring-inset ring-red-500' : 'border-r';
                                 @endphp

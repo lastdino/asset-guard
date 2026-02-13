@@ -77,7 +77,7 @@ class Index extends Component
         $this->infos = $info;
         $query = AssetGuardMaintenancePlan::query()->with([ 'asset'])
             ->whereBetween('scheduled_at', [$info['start'], $info['end']])
-            ->whereNotIN('status', ['Completed', 'Cancelled', 'Archived'])
+            ->whereNotIn('status', ['Completed', 'Cancelled', 'Archived', 'Finished'])
             ->when($this->assetId, fn($q) => $q->where('asset_id', $this->assetId));
 
         $this->events = $query->latest('scheduled_at')->limit(500)->get()->map(function ($o): array {
@@ -152,7 +152,7 @@ class Index extends Component
                         ->when($assetId, function ($q2) use ($assetId) {
                             $q2->where('asset_id', $assetId);
                         })
-                        ->whereNotIn('status', ['Completed', 'Cancelled', 'Archived'])
+                        ->whereNotIn('status', ['Completed', 'Cancelled', 'Archived', 'Finished'])
                         ->orderBy('scheduled_at');
                 },
             ])
@@ -200,6 +200,12 @@ class Index extends Component
             'assigned_to' => $model->assigned_to,
             'status' => (string) ($model->status ?: 'Scheduled'),
         ];
+
+        // 編集モーダルを開く際に、背後の「今後の予定」リストを最新化する（ステータス変更などを反映）
+        if ($this->viewingListId) {
+            $this->openShow($this->viewingListId);
+        }
+
         $this->showPlan = true;
     }
 
@@ -209,11 +215,17 @@ class Index extends Component
         $this->form['scheduled_at'] = Carbon::parse($date)->toDateString();
     }
 
-    public function deletePlan(int $planId): void
+    public function deletePlan(): void
     {
-        $plan = AssetGuardMaintenancePlan::query()->findOrFail($planId);
+        if (! $this->editingPlanId) {
+            return;
+        }
+
+        $plan = AssetGuardMaintenancePlan::query()->findOrFail($this->editingPlanId);
         $plan->delete();
+
         $this->dispatch('notify', message: __('asset-guard::plans.deleted'));
+        $this->onPlanSaved();
     }
 
     protected function rules(): array
@@ -254,6 +266,11 @@ class Index extends Component
         // Auto-generate title
         $this->form['title'] = $this->form['scheduled_at']."/".$this->form['assigned_to'];
         AssetGuardMaintenancePlan::updateOrCreate(['id'=>$this->editingPlanId],$this->form);
+
+        if ($this->viewingListId) {
+            $this->openShow($this->viewingListId);
+        }
+
         $this->dispatch('saved');
     }
 

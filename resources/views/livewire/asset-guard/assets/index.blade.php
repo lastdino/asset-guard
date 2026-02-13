@@ -239,6 +239,15 @@
                             </flux:button>
                         </flux:tooltip>
                     @endif
+
+                    <flux:button
+                        size="xs"
+                        variant="subtle"
+                        icon="table-cells"
+                        :href="route(config('asset-guard.routes.prefix').'.assets.monthly-inspections', ['assetId' => $selectedAsset->id])"
+                    >
+                        {{ __('asset-guard::quick_inspection.view_monthly') }}
+                    </flux:button>
                 </div>
             </div>
             <!-- 常時表示: 設備サマリ（情報 + 写真） -->

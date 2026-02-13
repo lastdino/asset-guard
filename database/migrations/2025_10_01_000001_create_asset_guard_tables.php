@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types=1);
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // 1) Locations (master)
@@ -98,7 +97,7 @@ return new class extends Migration {
             $table->string('role', 20)->default('Assistant');
             $table->timestamp('signed_at')->nullable();
             $table->timestamps();
-            $table->unique(['inspection_id','user_id']);
+            $table->unique(['inspection_id', 'user_id']);
         });
 
         // 8) Maintenance plans
@@ -120,7 +119,6 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-
         // 10) Incidents
         Schema::create('asset_guard_incidents', function (Blueprint $table): void {
             $table->id();
@@ -130,7 +128,7 @@ return new class extends Migration {
             $table->string('assignee_name')->nullable();
             $table->text('event');
             $table->text('actions')->nullable();
-            $table->enum('status', ['Waiting','InProgress','Completed'])->default('Waiting');
+            $table->enum('status', ['Waiting', 'InProgress', 'Completed'])->default('Waiting');
             $table->string('severity', 20)->default('Medium');
             $table->timestamp('completed_at')->nullable();
             $table->text('note')->nullable();

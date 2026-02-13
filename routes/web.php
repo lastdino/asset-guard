@@ -32,6 +32,9 @@ Route::middleware(config('asset-guard.routes.middleware'))
         // Quick Inspection by Asset Code (Livewire class component)
         Route::get('/inspections/quick', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\Quick::class)->name('inspections.quick');
 
+        // Monthly Inspection Table (Livewire class component)
+        Route::get('/assets/{assetId}/monthly-inspections/{yearMonth?}', \Lastdino\AssetGuard\Livewire\AssetGuard\Inspections\MonthlyInspectionTable::class)->name('assets.monthly-inspections');
+
         // Signed, auth-protected download for incident attachments
         Route::get('/incidents/download/{media}', function (Request $request, int $media) {
             $mediaItem = Media::query()->findOrFail($media);
