@@ -60,6 +60,8 @@ class ChecklistItemsPanel extends Component
             'name' => '',
             'method' => 'text',
             'pass_condition' => null,
+            'min_value' => null,
+            'max_value' => null,
             'checklist_id' => $checklistId ?? $this->checklistId,
         ];
         $this->referencePhoto = null;
@@ -98,8 +100,8 @@ class ChecklistItemsPanel extends Component
             $itemData['min_value'] = null;
             $itemData['max_value'] = null;
         } else {
-            $min = $itemData['min_value'];
-            $max = $itemData['max_value'];
+            $min = $itemData['min_value'] ?? null;
+            $max = $itemData['max_value'] ?? null;
             if ($min !== null && $max !== null && (float) $min > (float) $max) {
                 $this->addError('itemForm.min_value', '下限は上限以下にしてください。');
 
